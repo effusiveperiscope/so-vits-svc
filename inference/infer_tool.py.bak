@@ -92,7 +92,7 @@ def resize2d_f0(x, target_len):
 def get_f0(x, p_len,f0_up_key=0):
 
     time_step = 160 / 16000 * 1000
-    f0_min = 75
+    f0_min = 50
     f0_max = 1100
     f0_mel_min = 1127 * np.log(1 + f0_min / 700)
     f0_mel_max = 1127 * np.log(1 + f0_max / 700)
