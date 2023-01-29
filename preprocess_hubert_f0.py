@@ -27,14 +27,14 @@ def get_f0(path,p_len=None, f0_up_key=0):
     else:
         assert abs(p_len-x.shape[0]//320) < 3, (path, p_len, x.shape)
     time_step = 320 / 32000 * 1000
-    f0_min = 75    #These should really be set based on the gender/range of the dataset, but usually 50 is too low
-    f0_max = 1100 #this can break pitch upwards if it's set this high for some datasets, especially male ones. A better value might be 400-500, but we want soprano singers to work OOTB without people complaining.
+    f0_min = 50
+    f0_max = 1100
     f0_mel_min = 1127 * np.log(1 + f0_min / 700)
     f0_mel_max = 1127 * np.log(1 + f0_max / 700)
 
-    f0 = parselmouth.Sound(x, 32000).to_pitch_cc( #ac is more accurate, but you don't actually want accurate f0 here, you want _consistent_ f0, which cc accomplishes better for these timesteps. cc is "outdated except for certain small step workloads" THIS is "certain small-step workloads"
-        time_step=time_step / 1000, voicing_threshold=0.4, #0.6 is way too difficult
-        pitch_floor=f0_min, pitch_ceiling=f0_max, very_accurate=1, octave_jump_cost=0.7).selected_array['frequency']
+    f0 = parselmouth.Sound(x, 32000).to_pitch_ac(
+        time_step=time_step / 1000, voicing_threshold=0.6,
+        pitch_floor=f0_min, pitch_ceiling=f0_max).selected_array['frequency']
 
     pad_size=(p_len - len(f0) + 1) // 2
     if(pad_size>0 or p_len - len(f0) - pad_size>0):
