@@ -31,14 +31,14 @@ def resize2d_f0(x, target_len):
 def get_f0(x, p_len,f0_up_key=0):
 
     time_step = 160 / 16000 * 1000
-    f0_min = 50
+    f0_min = 75
     f0_max = 1100
     f0_mel_min = 1127 * np.log(1 + f0_min / 700)
     f0_mel_max = 1127 * np.log(1 + f0_max / 700)
 
-    f0 = parselmouth.Sound(x, 16000).to_pitch_ac(
-        time_step=time_step / 1000, voicing_threshold=0.6,
-        pitch_floor=f0_min, pitch_ceiling=f0_max).selected_array['frequency']
+    f0 = parselmouth.Sound(x, 16000).to_pitch_cc(
+        time_step=time_step / 1000, voicing_threshold=0.4,
+        pitch_floor=f0_min, pitch_ceiling=f0_max, very_accurate=1, octave_jump_cost=0.7).selected_array['frequency']
 
     pad_size=(p_len - len(f0) + 1) // 2
     if(pad_size>0 or p_len - len(f0) - pad_size>0):
