@@ -1,59 +1,68 @@
-# Singing Voice Conversion
+<div align="center">
+<h1> Variational Inference with adversarial learning for end-to-end Singing Voice Conversion based on VITS </h1>
+    
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/maxmax20160403/sovits5.0)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1PY1E4bDAeHbAD4r99D_oYXB46fG8nIA5?usp=sharing)
 <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/PlayVoice/so-vits-svc-5.0">
 <img alt="GitHub forks" src="https://img.shields.io/github/forks/PlayVoice/so-vits-svc-5.0">
 <img alt="GitHub issues" src="https://img.shields.io/github/issues/PlayVoice/so-vits-svc-5.0">
 <img alt="GitHub" src="https://img.shields.io/github/license/PlayVoice/so-vits-svc-5.0">
+ 
+</div>
 
-【无需去伴奏】就能直接进行歌声转换的SVC库（轻度伴奏）
+- 💗本项目的目标群体是：深度学习初学者，具备Pyhon和PyTorch的基本操作是使用本项目的前置条件；
+- 💗本项目旨在帮助深度学习初学者，摆脱枯燥的纯理论学习，通过与实践结合，熟练掌握深度学习基本知识；
+- 💗本项目不支持实时变声；
+- 💗本项目不会开发用于其他用途的一键包。
 
-## 技术分支
+![sovits_framework](https://github.com/PlayVoice/so-vits-svc-5.0/assets/16432329/402cf58d-6d03-4d0b-9d6a-94f079898672)
 
-- [PlayVoice/so-vits-svc-5.0](https://github.com/PlayVoice/so-vits-svc-5.0) 有口音，辨识度高，适合非跨语言，跨语言会口糊
-  
-- [PlayVoice/lora-svc](https://github.com/PlayVoice/lora-svc) 无口音，辨识度略低，适合跨语言，跨语言不口糊
+【低 配置】6G显存可训练
 
-- [PlayVoice/max-vc](https://github.com/PlayVoice/max-vc) 不提取F0，解决F0提取不准，丝滑的转换结果
+【无 泄漏】支持多发音人
 
-## 本项目更新中，测试模型发布，非最后结果
+【带 伴奏】也能进行转换，轻度伴奏
 
-- 内容提取器更新为OpenAI的whisper
-  
-- HiFiGAN更新为NVIDA的BigVGAN
-  
-- VITS框架加入Micsoft的NatureSpeech优化
-  
-- 加入音色提取
+【用 Excel】进行原始调教，纯手工
 
-- 加入说话人适配器
+![sonic visualiser](https://user-images.githubusercontent.com/16432329/237011482-51f3a45e-72c6-4d4a-b1df-f561d1df7132.png)
 
-- 加入GRL阻止音色泄漏
+本项目并不基于svc-develop-team/so-vits-svc，恰恰相反，见https://github.com/svc-develop-team/so-vits-svc/tree/2.0
 
-| Feature | Status |
-| --- | --- |
-| whiser | ✅ |
-| bigvgan  | ✅ |
-| nature speech | ✅ |
-| nsf vocoder | ✅ |
-| speaker encoder | ✅ |
-| GRL for speaker | 用法和判别器类似，模型训练完了再处理 |
-| one shot vits | ✅ |
-| band extention | ✅ |
+## 本项目还在调试开发中~~~，关闭issue封闭开发，完成后开放；7月1日前，无法完成则删除项目。项目完成时，释放完整训练日志，以及所有整百epoch模型（不少于10个）用于分析训练过程模型变化。
 
-## 模型简介
-歌声音色转换模型，通过SoftVC内容编码器提取源音频语音特征，与F0同时输入VITS替换原本的文本输入达到歌声转换的效果。同时，更换声码器为 [NSF HiFiGAN](https://github.com/openvpi/DiffSinger/tree/refactor/modules/nsf_hifigan) 解决断音问题
+- 预览模型包括：生成器+判别器=194M，设置batch_size为8时，训练占用7.5G显存，学习门槛大大降低
+- 预览模型包含56个发音人，发音人文件在configs/singers目录中，可进行推理测试，尤其测试音色泄露
+- 发音人22，30，47，51辨识度较高，发音人样本在configs/singers_sample目录中
 
-> 据不完全统计，多说话人似乎会导致**音色泄漏加重**，不建议训练超过10人的模型，目前的建议是如果想炼出来更像目标音色，**尽可能炼单说话人的**\
-> 针对sovits3.0 48khz模型推理显存占用大的问题，可以切换到[32khz的分支](https://github.com/innnky/so-vits-svc/tree/32k) 版本训练32khz的模型\
-> 目前发现一个较大问题，3.0推理时显存占用巨大，6G显存基本只能推理30s左右长度音频\
-> 断音问题已解决，音质提升了不少\
-> 2.0版本已经移至 sovits_2.0分支\
-> 3.0版本使用FreeVC的代码结构，与旧版本不通用\
-> 与[DiffSVC](https://github.com/prophesier/diff-svc) 相比，在训练数据质量非常高时diffsvc有着更好的表现，对于质量差一些的数据集，本仓库可能会有更好的表现，此外，本仓库推理速度上比diffsvc快很多
+| Feature | From | Status | Function | Remarks |
+| --- | --- | --- | --- | --- |
+| whisper | OpenAI | ✅ | 强大的抗噪能力 | 参数修改 |
+| bigvgan  | NVIDA | ✅ | 抗锯齿与蛇形激活 | 删除，GPU占用过多 |
+| natural speech | Microsoft | ✅ | 减少发音错误 | - |
+| neural source-filter | NII | ✅ | 解决断音问题 | 参数优化 |
+| speaker encoder | Google | ✅ | 音色编码与聚类 | - |
+| GRL for speaker | Ubisoft |✅ | 防止编码器泄露音色 | 原理类似判别器的对抗训练 |
+| one shot vits |  Samsung | ✅ | VITS 一句话克隆 | - |
+| SCLN |  Microsoft | ✅ | 改善克隆 | - |
+| band extention | Adobe | ✅ | 16K升48K采样 | 数据处理 |
+| PPG perturbation | 本项目 | ✅ | 提升抗噪性和去音色 | - |
 
+💗GRL去音色泄漏，更多的是理论上的价值；Hugging Face Demo推理模型无泄漏主要归因于PPG扰动；由于使用了数据扰动，相比其他项目需要更长的训练时间。
 
 ## 数据集准备
-仅需要以以下文件结构将数据集放入dataset_raw目录即可
+<div align="center">
+    
+![uvr5_config](https://github.com/PlayVoice/vits_chinese/assets/16432329/f72fd2fa-0f05-4da1-bb0b-f29d0c20ddbf)
+    
+</div>
+
+💗必要的前处理：
+- 1 降噪&去伴奏
+- 2 频率提升
+- 3 音质提升，基于https://github.com/openvpi/vocoders ，待整合
+
+然后以下面文件结构将数据集放入dataset_raw目录
 ```shell
 dataset_raw
 ├───speaker0
@@ -68,24 +77,33 @@ dataset_raw
 
 ## 安装依赖
 
-    待完善~~~
+- 1 软件依赖
+
+  > pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+
+- 2 下载音色编码器: [Speaker-Encoder by @mueller91](https://drive.google.com/drive/folders/15oeBYf6Qn1edONkVLXe82MzdIi3O_9m3), 解压文件，把 `best_model.pth.tar`  放到目录 `speaker_pretrain/`
+
+- 3 下载whisper模型 [multiple language medium model](https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt), 确定下载的是`medium.pt`，把它放到文件夹 `whisper_pretrain/`
+
 
 ## 数据预处理
-- 1， 设置工作目录
+- 1， 设置工作目录:heartpulse::heartpulse::heartpulse:不设置后面会报错
 
     > export PYTHONPATH=$PWD
 
 - 2， 重采样
 
+    将音频剪裁为小于30秒的音频段，whisper的要求
+
     生成采样率16000Hz音频, 存储路径为：./data_svc/waves-16k
 
     > python prepare/preprocess_a.py -w ./data_raw -o ./data_svc/waves-16k -s 16000
 
-    生成采样率48000Hz音频, 存储路径为：./data_svc/waves-48k
+    生成采样率32000Hz音频, 存储路径为：./data_svc/waves-32k
 
-    > python prepare/preprocess_a.py -w ./data_raw -o ./data_svc/waves-48k -s 48000
+    > python prepare/preprocess_a.py -w ./data_raw -o ./data_svc/waves-32k -s 32000
 
-    可选的16000Hz提升到48000Hz，待完善~批处理
+    可选的16000Hz提升到32000Hz，待完善~批处理
 
     > python bandex/inference.py -w svc_out.wav
 
@@ -98,10 +116,10 @@ dataset_raw
 - 5， 使用16k音频，提取音色编码
     > python prepare/preprocess_speaker.py data_svc/waves-16k/ data_svc/speaker
 
-- 6， 使用48k音频，提取线性谱
-    > python prepare/preprocess_spec.py -w data_svc/waves-48k/ -s data_svc/specs
+- 6， 使用32k音频，提取线性谱
+    > python prepare/preprocess_spec.py -w data_svc/waves-32k/ -s data_svc/specs
 
-- 7， 使用48k音频，生成训练索引
+- 7， 使用32k音频，生成训练索引
     > python prepare/preprocess_train.py
 
 - 8， 训练文件调试
@@ -109,24 +127,31 @@ dataset_raw
 
 
 ## 训练
+- 1， 设置工作目录:heartpulse::heartpulse::heartpulse:不设置后面会报错
 
-启动训练
+    > export PYTHONPATH=$PWD
 
-> python svc_trainer.py -c configs/base.yaml -n sovits5.0
+- 2， 启动训练
 
-查看日志
+    > python svc_trainer.py -c configs/base.yaml -n sovits5.0
 
-> tensorboard --logdir logs/
+- 3， 恢复训练
 
-![snac](https://user-images.githubusercontent.com/16432329/234463836-ddf6d806-ccd1-452c-9961-1467ce26f304.png)
+    > python svc_trainer.py -c configs/base.yaml -n sovits5.0 -p chkpt/sovits5.0/***.pth
+
+- 4， 查看日志，release页面有完整的训练日志
+
+    > tensorboard --logdir logs/
+
+20K一阶段训练日志如下，可以看到还未收敛完成
+
+![sovits5 0 preview](https://github.com/PlayVoice/so-vits-svc-5.0/assets/16432329/339c11d5-67dd-426a-ba19-077d66efc953)
+
+![sovits_spec](https://github.com/PlayVoice/so-vits-svc-5.0/assets/16432329/c4223cf3-b4a0-4325-bec0-6d46d195a1fc)
 
 ## 推理
 
-### 可以下载release页面的sovits5.0_48k_debug.pth模型，进行推理测试
-### 模型包含56个发音人，在configs/singers目录中，可用于测试音色泄露
-### 4个辨识度较高的发音人样本，在configs/singers_sample目录中
-
-- 1， 设置工作目录
+- 1， 设置工作目录:heartpulse::heartpulse::heartpulse:不设置后面会报错
 
     > export PYTHONPATH=$PWD
 
@@ -140,21 +165,25 @@ dataset_raw
 
     生成test.ppg.npy；如果下一步没有指定ppg文件，则调用程序自动生成
 
-- 4，指定参数，推理
+- 4， 提取csv文本格式F0参数，Excel打开csv文件，对照Audition或者SonicVisualiser手动修改错误的F0
 
-    > python svc_inference.py --config configs/base.yaml --model sovits5.0.pth --spk ./configs/singers/singer0001.npy --wave test.wav --ppg test.ppg.npy
+    > python pitch/inference.py -w test.wav -p test.csv
+
+![Audition ](https://user-images.githubusercontent.com/16432329/237006512-9ef97936-df00-4b2d-ab76-921c383eb616.png)
+
+- 5，指定参数，推理
+
+    > python svc_inference.py --config configs/base.yaml --model sovits5.0.pth --spk ./configs/singers/singer0001.npy --wave test.wav --ppg test.ppg.npy --pit test.csv
 
     当指定--ppg后，多次推理同一个音频时，可以避免重复提取音频内容编码；没有指定，也会自动提取；
 
+    当指定--pit后，可以加载手工调教的F0参数；没有指定，也会自动提取；
+
     生成文件在当前目录svc_out.wav；
 
-    | args | name |
-    | --- | --- |
-    |--config   | 配置文件 |
-    |--model    | 模型文件 |
-    |--spk      | 音色文件 |
-    |--wave     | 音频文件 |
-    |--ppg      | 音频内容 |
+    | args |--config | --model | --spk | --wave | --ppg | --pit |          
+    | ---  | --- | --- | --- | --- | --- | --- |
+    | name | 配置文件 | 模型文件 | 音色文件 | 音频文件 | 音频内容 | 音高内容 |
 
 ## 数据集
 
@@ -185,11 +214,15 @@ https://github.com/openai/whisper/ [paper](https://arxiv.org/abs/2212.04356)
 
 https://github.com/NVIDIA/BigVGAN [paper](https://arxiv.org/abs/2206.04658)
 
-https://github.com/mindslab-ai/univnet [[paper]](https://arxiv.org/abs/2106.07889)
+https://github.com/mindslab-ai/univnet [paper](https://arxiv.org/abs/2106.07889)
 
 https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts/tree/master/project/01-nsf
 
-[VI-SVC, Singing Voice Conversion based on VITS decoder](https://zhuanlan.zhihu.com/p/564060769)
+https://github.com/brentspell/hifi-gan-bwe
+
+https://github.com/mozilla/TTS
+
+https://github.com/OlaWod/FreeVC [paper](https://arxiv.org/abs/2210.15418)
 
 [SNAC : Speaker-normalized Affine Coupling Layer in Flow-based Architecture for Zero-Shot Multi-Speaker Text-to-Speech](https://github.com/hcy71o/SNAC)
 
@@ -197,8 +230,35 @@ https://github.com/nii-yamagishilab/project-NN-Pytorch-scripts/tree/master/proje
 
 [AdaSpeech: Adaptive Text to Speech for Custom Voice](https://arxiv.org/pdf/2103.00993.pdf)
 
+[Cross-Speaker Prosody Transfer on Any Text for Expressive Speech Synthesis](https://github.com/ubisoft/ubisoft-laforge-daft-exprt)
+
+[Learn to Sing by Listening: Building Controllable Virtual Singer by Unsupervised Learning from Voice Recordings](https://arxiv.org/abs/2305.05401)
+
+[Adversarial Speaker Disentanglement Using Unannotated External Data for Self-supervised Representation Based Voice Conversion](https://arxiv.org/pdf/2305.09167.pdf)
+
+[Speaker normalization (GRL) for self-supervised speech emotion recognition](https://arxiv.org/abs/2202.01252)
+
+## 基于数据扰动防止音色泄露的方法
+
+https://github.com/auspicious3000/contentvec/blob/main/contentvec/data/audio/audio_utils_1.py
+
+https://github.com/revsic/torch-nansy/blob/main/utils/augment/praat.py
+
+https://github.com/revsic/torch-nansy/blob/main/utils/augment/peq.py
+
+https://github.com/biggytruck/SpeechSplit2/blob/main/utils.py
+
+https://github.com/OlaWod/FreeVC/blob/main/preprocess_sr.py
+
 ## 贡献者
 
 <a href="https://github.com/PlayVoice/so-vits-svc/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=PlayVoice/so-vits-svc" />
 </a>
+
+## 交流群
+<div align="center">
+
+![炼丹师公会-SVC群聊二维码](https://github.com/PlayVoice/vits_chinese/assets/16432329/1d728f61-be74-4706-9ecf-5cb0be4c094c)
+
+</div>

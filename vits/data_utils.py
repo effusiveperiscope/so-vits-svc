@@ -27,8 +27,8 @@ class TextAudioSpeakerSet(torch.utils.data.Dataset):
     def _filter(self):
         lengths = []
         items_new = []
-        items_min = int(self.segment_size / self.hop_length * 2)  # 1 S
-        items_max = int(self.segment_size / self.hop_length * 9)  # 4.5 S
+        items_min = int(self.segment_size / self.hop_length * 4)  # 1 S
+        items_max = int(self.segment_size / self.hop_length * 16)  # 4 S
         for wavpath, spec, pitch, ppg, spk in self.items:
             if not os.path.isfile(wavpath):
                 continue
@@ -87,7 +87,7 @@ class TextAudioSpeakerSet(torch.utils.data.Dataset):
         spk = torch.FloatTensor(spk)
 
         len_pit = pit.size()[0]
-        len_ppg = ppg.size()[0]
+        len_ppg = ppg.size()[0] - 2 # for safe
         len_min = min(len_pit, len_ppg)
         len_wav = len_min * self.hop_length
 
@@ -255,6 +255,8 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
         for i in range(len(self.buckets)):
             bucket = self.buckets[i]
             len_bucket = len(bucket)
+            if (len_bucket == 0):
+                continue
             ids_bucket = indices[i]
             num_samples_bucket = self.num_samples_per_bucket[i]
 

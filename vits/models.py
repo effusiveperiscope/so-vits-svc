@@ -8,6 +8,7 @@ from vits import commons
 from vits import modules
 from vits.utils import f0_to_coarse
 from vits_decoder.generator import Generator
+from vits.modules_grl import SpeakerClassifier
 
 
 class TextEncoder(nn.Module):
@@ -44,7 +45,7 @@ class TextEncoder(nn.Module):
         stats = self.proj(x) * x_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
         z = (m + torch.randn_like(m) * torch.exp(logs)) * x_mask
-        return z, m, logs, x_mask
+        return z, m, logs, x_mask, x
 
 
 class ResidualCouplingBlock(nn.Module):
@@ -151,6 +152,10 @@ class SynthesizerTrn(nn.Module):
             3,
             0.1,
         )
+        self.speaker_classifier = SpeakerClassifier(
+            hp.vits.hidden_channels,
+            hp.vits.spk_dim,
+        )
         self.enc_q = PosteriorEncoder(
             spec_channels,
             hp.vits.inter_channels,
@@ -171,8 +176,9 @@ class SynthesizerTrn(nn.Module):
         self.dec = Generator(hp=hp)
 
     def forward(self, ppg, pit, spec, spk, ppg_l, spec_l):
+        ppg = ppg + torch.randn_like(ppg)  # Perturbation
         g = self.emb_g(F.normalize(spk)).unsqueeze(-1)
-        z_p, m_p, logs_p, ppg_mask = self.enc_p(
+        z_p, m_p, logs_p, ppg_mask, x = self.enc_p(
             ppg, ppg_l, f0=f0_to_coarse(pit))
         z_q, m_q, logs_q, spec_mask = self.enc_q(spec, spec_l, g=g)
 
@@ -183,10 +189,12 @@ class SynthesizerTrn(nn.Module):
         # SNAC to flow
         z_f, logdet_f = self.flow(z_q, spec_mask, g=spk)
         z_r, logdet_r = self.flow(z_p, spec_mask, g=spk, reverse=True)
-        return audio, ids_slice, spec_mask, (z_f, z_r, z_p, m_p, logs_p, z_q, m_q, logs_q, logdet_f, logdet_r)
+        # speaker
+        spk_preds = self.speaker_classifier(x)
+        return audio, ids_slice, spec_mask, (z_f, z_r, z_p, m_p, logs_p, z_q, m_q, logs_q, logdet_f, logdet_r), spk_preds
 
     def infer(self, ppg, pit, spk, ppg_l):
-        z_p, m_p, logs_p, ppg_mask = self.enc_p(
+        z_p, m_p, logs_p, ppg_mask, x = self.enc_p(
             ppg, ppg_l, f0=f0_to_coarse(pit))
         z, _ = self.flow(z_p, ppg_mask, g=spk, reverse=True)
         o = self.dec(spk, z * ppg_mask, f0=pit)
@@ -226,9 +234,16 @@ class SynthesizerInfer(nn.Module):
         self.flow.remove_weight_norm()
         self.dec.remove_weight_norm()
 
-    def forward(self, ppg, pit, spk, ppg_l):
-        z_p, m_p, logs_p, ppg_mask = self.enc_p(
+    def pitch2source(self, f0):
+        return self.dec.pitch2source(f0)
+
+    def source2wav(self, source):
+        return self.dec.source2wav(source)
+
+    def inference(self, ppg, pit, spk, ppg_l, source):
+        ppg = ppg + torch.randn_like(ppg) * 0.0001  # Perturbation
+        z_p, m_p, logs_p, ppg_mask, x = self.enc_p(
             ppg, ppg_l, f0=f0_to_coarse(pit))
         z, _ = self.flow(z_p, ppg_mask, g=spk, reverse=True)
-        o = self.dec(spk, z * ppg_mask, f0=pit)
+        o = self.dec.inference(spk, z * ppg_mask, source)
         return o
