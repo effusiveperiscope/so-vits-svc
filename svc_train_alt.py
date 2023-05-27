@@ -14,7 +14,9 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--sample_rate', type=int, default=32000,
         help='sample rate to use for model')
     parser.add_argument('-n', '--name', type=str, default='sovits5.0',
-        help='name of model for logging,s aving checkpoint')
+        help='name of model for logging, saving checkpoint')
+    parser.add_argument('-c', '--do_cluster', type=bool, default=False,
+        help='create cluster models')
     args = parser.parse_args()
 
     os.environ['PYTHONPATH'] = os.getcwd()
@@ -35,6 +37,11 @@ if __name__ == '__main__':
         subprocess.check_call(['python','prepare/preprocess_ppg.py',
             '-w','data_svc/waves-32k',
             '-p','data_svc/whisper'], env=os.environ)
+    if args.do_cluster and not os.path.exists('data_svc/cluster'):
+        os.makedirs("data_svc/cluster")
+        subprocess.check_call(['python','prepare/preprocess_cluster.py',
+            '-p','data_svc/whisper',
+            '-c','data_svc/cluster'], env=os.environ)
     if not os.path.exists('data_svc/speaker'):
         subprocess.check_call(['python','prepare/preprocess_speaker.py',
             'data_svc/waves-32k',
