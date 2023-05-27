@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 def default_checkpoint_path(ckpt_dir = "chkpt/sovits5.0"):
-    if os.path.exists(ckpt_dir):
+    if os.path.exists(ckpt_dir) and len(os.listdir(ckpt_dir)):
         return os.path.join(ckpt_dir, (sorted(os.listdir(ckpt_dir))[-1]))
     else:
         return None
@@ -39,6 +39,10 @@ if __name__ == '__main__':
         subprocess.check_call(['python','prepare/preprocess_speaker.py',
             'data_svc/waves-32k',
             'data_svc/speaker'], env=os.environ)
+    if not os.path.exists('data_svc/singer'):
+        subprocess.check_call(['python','prepare/preprocess_speaker_ave.py',
+            'data_svc/speaker',
+            'data_svc/singer'], env=os.environ)
     if not os.path.exists('data_svc/specs'):
         subprocess.check_call(['python','prepare/preprocess_spec.py',
             '-w','data_svc/waves-32k',
