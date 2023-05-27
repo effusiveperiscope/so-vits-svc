@@ -101,7 +101,17 @@ def get_speakers():
         for name in g:
             cur_speaker["name"] = Path(name).stem.split('.')[0]
             cur_speaker["spk_path"] = name
+
+            # Look for cluster checkpoints
+            cluster_path = os.path.join(MODELS_DIR,folder,"cluster",
+                cur_speaker["name"]+".cluster")
+            if os.path.exists(cluster_path):
+                cur_speaker["cluster_path"] = cluster_path
+            else:
+                cur_speaker["cluster_path"] = None
+
             speakers.append(copy.copy(cur_speaker))
+
     return sorted(speakers, key=lambda x:x["name"].lower())
 
 def el_trunc(s, n=80):
@@ -943,6 +953,8 @@ class InferenceGui2 (QMainWindow):
         print(self.speakers[index]["spk_path"])
         self.spk_emb = self.infer_tool.load_speaker_emb(
             self.speakers[index]["spk_path"])
+        self.infer_tool.load_cluster(
+            self.speakers[index]["cluster_path"])
 
         if (self.speaker.get("model_path") is None or
             self.speakers[index]["model_path"] !=

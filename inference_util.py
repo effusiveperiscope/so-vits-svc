@@ -11,6 +11,7 @@ from pitch import load_csv_pitch
 
 from whisper.model import Whisper, ModelDimensions
 from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
+from sklearn.cluster import KMeans
 
 LOG_TIMES = True
 
@@ -119,17 +120,41 @@ class InferTool:
     def load_speaker_emb(self, speaker_emb_file):
         return np.load(speaker_emb_file)
 
+    def load_cluster(self, cluster_path):
+        if cluster_path is not None:
+            ckpt = torch.load(cluster_path)
+            self.cluster_model = KMeans(ckpt["n_features_in_"])
+            self.cluster_model.__dict__["n_features_in_"] = (
+                ckpt["n_features_in_"])
+            self.cluster_model.__dict__["_n_threads"] = (
+                ckpt["_n_threads"])
+            self.cluster_model.__dict__["cluster_centers_"] = (
+                ckpt["cluster_centers_"])
+        else:
+            self.cluster_model = None
+
     # It is assumed input data is mono 16bit pcm 16k sr.
     # We can use load_audio from whisper/audio.py to comply with this
     def infer(self,
         audio_data : np.ndarray,
         speaker_emb : np.ndarray,
-        transpose = 0):
+        transpose = 0,
+        cluster_ratio = 0):
         assert self.model is not None
 
         start_time = time.time()
 
-        ppg = self.pred_ppg(audio_data)
+        ppg = np.array(self.pred_ppg(audio_data))
+
+        #if self.cluster_model is not None:
+        #    ppg_class = self.cluster_model.predict(ppg)
+        #    #print(ppg_class.shape)
+        #    ppg_cluster_predict = self.cluster_model.cluster_centers_[
+        #        ppg_class]
+        #    #print(ppg_cluster_predict.shape)
+        #    ppg = (cluster_ratio*ppg_cluster_predict +
+        #        (1 - cluster_ratio)*ppg)
+
         ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
         ppg = torch.FloatTensor(ppg)
 
