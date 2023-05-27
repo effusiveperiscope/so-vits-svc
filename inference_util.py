@@ -1,8 +1,8 @@
 import os
 import torch
 import numpy as np
-import torchcrepe
 import time
+import pyworld
 
 from omegaconf import OmegaConf
 from scipy.io.wavfile import write
@@ -87,7 +87,26 @@ class InferTool:
                 ppg_a.extend(ppg)
         return ppg_a
 
+    def compute_f0_harvest(self, audio):
+        import pyworld
+        hop_length = 320
+        sr = 16000
+        p_len = audio.shape[0]//hop_length
+        f0, t = pyworld.harvest(
+            audio.astype(np.double),
+            fs=sr,
+            f0_ceil=800,
+            frame_period=1000 * hop_length / sr,
+        )
+        f0 = pyworld.stonemask(audio.astype(np.double), f0, t, sr)
+        for index, pitch in enumerate(f0):
+            f0[index] = round(pitch, 1)
+        # Ok, why is this completely incorrect in length?
+        f0 = np.repeat(f0, 2, -1)
+        return f0
+
     def compute_f0_nn(self, audio):
+        import torchcrepe
         # Load audio
         audio = torch.tensor(np.copy(audio))[None]
         hop_length = 320
@@ -162,7 +181,7 @@ class InferTool:
         if LOG_TIMES:
             print("ppg time: "+str(ppg_time - start_time))
 
-        pit = self.compute_f0_nn(audio_data)
+        pit = self.compute_f0_harvest(audio_data)
         pit = pit * (2 ** (transpose / 12))
         pit = torch.FloatTensor(pit)
 
