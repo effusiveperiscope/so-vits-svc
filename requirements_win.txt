@@ -30,3 +30,4 @@ tensorboard
 PyQt5
 huggingface_hub
 datasets
+Pillow==9.1.0
