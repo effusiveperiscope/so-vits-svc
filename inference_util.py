@@ -17,7 +17,7 @@ LOG_TIMES = True
 
 class InferTool:
     def __init__(self,
-        whisper_path = os.path.join("whisper_pretrain", "medium.pt"),
+        whisper_path = os.path.join("whisper_pretrain", "large-v2.pt"),
         config_dir = "configs/base.yaml"):
         self.hp = OmegaConf.load(config_dir)
         self.model = None
