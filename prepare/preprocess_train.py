@@ -10,24 +10,26 @@ def print_error(info):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d","--data_dir", help="data_svc directory")
+    parser.add_argument("-r","--raw_dir", help="dataset_raw directory")
     args = parser.parse_args()
     os.makedirs("./files/", exist_ok=True)
 
-    rootPath = "./"+args.data_dir
+    rawPath = "./"+args.raw_dir
+    dataPath = "./"+args.data_dir
     all_items = []
-    for spks in os.listdir(f"./{rootPath}"):
-        if not os.path.isdir(f"./{rootPath}/{spks}"):
+    for spks in os.listdir(f"./{rawPath}"):
+        if not os.path.isdir(f"./{rawPath}/{spks}"):
             continue
-        print(f"./{rootPath}/{spks}")
-        for file in os.listdir(f"./{rootPath}/{spks}"):
+        print(f"./{rawPath}/{spks}")
+        for file in os.listdir(f"./{rawPath}/{spks}"):
             if file.endswith(".wav"):
                 file = file[:-4]
-                path_spk = rootpath+f"/speaker/{spks}/{file}.spk.npy"
-                path_wave = rootpath+f"/waves-32k/{spks}/{file}.wav"
-                path_spec = rootpath+f"/specs/{spks}/{file}.pt"
-                path_pitch = rootpath+f"/pitch/{spks}/{file}.pit.npy"
-                path_hubert = rootpath+f"/hubert/{spks}/{file}.vec.npy"
-                path_whisper = rootPath+f"/whisper/{spks}/{file}.ppg.npy"
+                path_spk = dataPath+f"/speaker/{spks}/{file}.spk.npy"
+                path_wave = dataPath+f"/waves-32k/{spks}/{file}.wav"
+                path_spec = dataPath+f"/specs/{spks}/{file}.pt"
+                path_pitch = dataPath+f"/pitch/{spks}/{file}.pit.npy"
+                path_hubert = dataPath+f"/hubert/{spks}/{file}.vec.npy"
+                path_whisper = dataPath+f"/whisper/{spks}/{file}.ppg.npy"
                 has_error = 0
                 if not os.path.isfile(path_spk):
                     print_error(path_spk)
