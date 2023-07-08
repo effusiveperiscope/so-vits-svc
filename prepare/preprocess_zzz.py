@@ -1,3 +1,5 @@
+import sys,os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
