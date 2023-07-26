@@ -11,17 +11,20 @@ from pitch import load_csv_pitch
 
 from whisper.model import Whisper, ModelDimensions
 from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
+from hubert import hubert_model
 from sklearn.cluster import KMeans
 
 LOG_TIMES = True
 
 class InferTool:
     def __init__(self,
-        whisper_path = os.path.join("whisper_pretrain", "large-v2.pt"),
+        whisper_path = os.path.join("whisper_pretrain","large-v2.pt"),
+        hubert_path = os.path.join("hubert_pretrain","hubert-soft-0d54a1f4.pt"),
         config_dir = "configs/base.yaml"):
         self.hp = OmegaConf.load(config_dir)
         self.model = None
         self.whisper = self.load_whisper_model(whisper_path)
+        self.hubert = self.load_hubert_model(hubert_path)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         pass
 
@@ -32,6 +35,14 @@ class InferTool:
         model = Whisper(dims)
         model.load_state_dict(checkpoint["model_state_dict"])
         return model.to(device)
+
+    def load_hubert_model(self, path):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = hubert_model.hubert_soft(path)
+        model.eval()
+        model.half()
+        model.to(device)
+        return model
 
     def load_svc_model(self, checkpoint_path):
         assert os.path.isfile(checkpoint_path)
@@ -59,6 +70,31 @@ class InferTool:
         self.model = model
         # print("loaded model from "+checkpoint_path)
         pass
+
+    def pred_vec(self, wav_data):
+        audio = wav_data
+        audln = audio.shape[0]
+        vec_a = []
+        idx_s = 0
+        while (idx_s + 20 * 16000 < audln):
+            feats = audio[idx_s:idx_s + 20 * 16000]
+            feats = torch.from_numpy(feats).to(self.device)
+            feats = feats[None, None, :].half()
+            with torch.no_grad():
+                vec = self.hubert.units(
+                    feats).squeeze().data.cpu().float().numpy()
+                vec_a.extend(vec)
+            idx_s = idx_s + 20 * 16000
+        if (idx_s < audln):
+            feats = audio[idx_s:audln]
+            feats = torch.from_numpy(feats).to(self.device)
+            feats = feats[None, None, :].half()
+            with torch.no_grad():
+                vec = self.hubert.units(
+                    feats).squeeze().data.cpu().float().numpy()
+                # print(vec.shape)   # [length, dim=256] hop=320
+                vec_a.extend(vec)
+        return vec_a
 
     def pred_ppg(self, wav_data):
         audio = wav_data 
@@ -164,6 +200,7 @@ class InferTool:
         start_time = time.time()
 
         ppg = np.array(self.pred_ppg(audio_data))
+        vec = np.array(self.pred_vec(audio_data))
 
         #if self.cluster_model is not None:
         #    ppg_class = self.cluster_model.predict(ppg)
@@ -176,6 +213,9 @@ class InferTool:
 
         ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
         ppg = torch.FloatTensor(ppg)
+
+        vec = np.repeat(vec, 2, 0)  # 320 PPG -> 160 * 2
+        vec = torch.FloatTensor(vec)
 
         ppg_time = time.time()
         if LOG_TIMES:
@@ -190,9 +230,12 @@ class InferTool:
             print("pit time: "+str(pit_time - ppg_time))
 
         len_pit = pit.size()[0]
+        len_vec = vec.size()[0]
         len_ppg = ppg.size()[0]
         len_min = min(len_pit, len_ppg)
+        len_min = min(len_min, len_vec)
         pit = pit[:len_min]
+        vec = vec[:len_min, :]
         ppg = ppg[:len_min, :]
 
         spk = speaker_emb
@@ -229,12 +272,13 @@ class InferTool:
                     cut_e_out = -1 * hop_frame * hop_size
 
                 sub_ppg = ppg[cut_s:cut_e, :].unsqueeze(0).to(self.device)
+                sub_vec = vec[cut_s:cut_e, :].unsqueeze(0).to(self.device)
                 sub_pit = pit[cut_s:cut_e].unsqueeze(0).to(self.device)
                 sub_len = torch.LongTensor([cut_e - cut_s]).to(self.device)
                 sub_har = source[:, :, cut_s *
                                  hop_size:cut_e * hop_size].to(self.device)
                 sub_out = self.model.inference(
-                    sub_ppg, sub_pit, spk, sub_len, sub_har)
+                    sub_ppg, sub_vec, sub_pit, spk, sub_len, sub_har)
                 sub_out = sub_out[0, 0].data.cpu().detach().numpy()
 
                 sub_out = sub_out[cut_s_out:cut_e_out]
@@ -249,11 +293,12 @@ class InferTool:
                     cut_s = 0
                     cut_s_out = 0
                 sub_ppg = ppg[cut_s:, :].unsqueeze(0).to(self.device)
+                sub_vec = vec[cut_s:, :].unsqueeze(0).to(self.device)
                 sub_pit = pit[cut_s:].unsqueeze(0).to(self.device)
                 sub_len = torch.LongTensor([all_frame - cut_s]).to(self.device)
                 sub_har = source[:, :, cut_s * hop_size:].to(self.device)
                 sub_out = self.model.inference(
-                    sub_ppg, sub_pit, spk, sub_len, sub_har)
+                    sub_ppg, sub_vec, sub_pit, spk, sub_len, sub_har)
                 sub_out = sub_out[0, 0].data.cpu().detach().numpy()
 
                 sub_out = sub_out[cut_s_out:]
