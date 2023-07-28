@@ -77,7 +77,7 @@ BASE_CFG_DIR = "configs/base.yaml"
 RECORD_DIR = "./recordings"
 JSON_NAME = "inference_gui_persist.json"
 RECENT_DIR_MAXLEN = 10
-#F0_OPTIONS = ["harvest", "dio", "parselmouth_new", "parselmouth_old"]
+F0_OPTIONS = ["harvest", "crepe", "parselmouth"]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
 def get_speakers():
@@ -667,6 +667,11 @@ class InferenceGui2 (QMainWindow):
         self.transpose_num = QLineEdit('0')
         self.transpose_num.setValidator(self.transpose_validator)
 
+        self.f0_box = QComboBox()
+        for f0_method in F0_OPTIONS:
+            self.f0_box.addItem(f0_method)
+        self.sovits_lay.addWidget(self.f0_box)
+
         self.transpose_frame = FieldWidget(
             self.transpose_label, self.transpose_num)
         self.sovits_lay.addWidget(self.transpose_frame)
@@ -1081,6 +1086,7 @@ class InferenceGui2 (QMainWindow):
                     audio_data = pyrb.time_stretch(
                         audio_data, audio_sr, float(self.ts_num.text()))
 
+                f0_method = F0_OPTIONS[self.f0_box.currentIndex()]
                 out_audio = self.infer_tool.infer(
                     audio_data, self.spk_emb, trans)
                 

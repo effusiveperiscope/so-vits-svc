@@ -137,7 +137,17 @@ class InferTool:
         f0 = pyworld.stonemask(audio.astype(np.double), f0, t, sr)
         for index, pitch in enumerate(f0):
             f0[index] = round(pitch, 1)
-        # Ok, why is this completely incorrect in length?
+        f0 = np.repeat(f0, 2, -1)
+        return f0
+
+    def compute_f0_parselmouth_cc(self, audio, voice_thresh = 0.3):
+        import parselmouth
+        sr = 16000
+        hop_length = 320
+        time_step = hop_length / sampling_rate * 1000
+        f0 = parselmouth.Sound(audio, sr).to_pitch_cc(
+            time_step / 1000, voicing_threshold = voice_thresh,
+            pitch_floor = 75, pitch_ceiling = 1100).selected_array['frequency']
         f0 = np.repeat(f0, 2, -1)
         return f0
 
@@ -194,7 +204,8 @@ class InferTool:
         audio_data : np.ndarray,
         speaker_emb : np.ndarray,
         transpose = 0,
-        cluster_ratio = 0):
+        cluster_ratio = 0,
+        f0_method = "harvest"):
         assert self.model is not None
 
         start_time = time.time()
@@ -221,7 +232,12 @@ class InferTool:
         if LOG_TIMES:
             print("ppg time: "+str(ppg_time - start_time))
 
-        pit = self.compute_f0_harvest(audio_data)
+        if f0_method == "harvest":
+            pit = self.compute_f0_harvest(audio_data)
+        elif f0_method == "crepe":
+            pit = self.compute_f0_nn(audio_data)
+        elif f0_method == "parselmouth":
+            pit = self.compute_f0_parselmouth_cc(audio_data)
         pit = pit * (2 ** (transpose / 12))
         pit = torch.FloatTensor(pit)
 
