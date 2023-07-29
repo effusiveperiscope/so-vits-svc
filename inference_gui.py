@@ -667,6 +667,8 @@ class InferenceGui2 (QMainWindow):
         self.transpose_num = QLineEdit('0')
         self.transpose_num.setValidator(self.transpose_validator)
 
+        self.f0_label = QLabel("f0 detection method")
+        self.sovits_lay.addWidget(self.f0_label)
         self.f0_box = QComboBox()
         for f0_method in F0_OPTIONS:
             self.f0_box.addItem(f0_method)
