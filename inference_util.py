@@ -6,6 +6,7 @@ import pyworld
 
 from omegaconf import OmegaConf
 from scipy.io.wavfile import write
+import scipy.signal as signal
 from vits.models import SynthesizerInfer
 from pitch import load_csv_pitch
 
@@ -135,9 +136,26 @@ class InferTool:
             frame_period=1000 * hop_length / sr,
         )
         f0 = pyworld.stonemask(audio.astype(np.double), f0, t, sr)
-        for index, pitch in enumerate(f0):
-            f0[index] = round(pitch, 1)
+        #for index, pitch in enumerate(f0): # This doesn't make any sense...
+            #f0[index] = round(pitch, 1) # ???
         f0 = np.repeat(f0, 2, -1)
+        return f0
+
+    def compute_f0_harvest2(self, audio):
+        import pyworld
+        hop_length = 320
+        sr = 32000
+        p_len = audio.shape[0]//hop_length
+        f0, t = pyworld.harvest(
+            audio.astype(np.double),
+            fs=sr,
+            f0_ceil=800,
+            frame_period=1000 * hop_length / sr,
+        ) # this is half of the size collected for the thing, not double.
+        f0 = pyworld.stonemask(audio.astype(np.double), f0, t, sr)
+        #for index, pitch in enumerate(f0): # This doesn't make any sense...
+            #f0[index] = round(pitch, 1) # ???
+        f0 = signal.medfilt(f0, 3)
         return f0
 
     def compute_f0_parselmouth_cc(self, audio, voice_thresh = 0.3):
@@ -182,6 +200,33 @@ class InferTool:
         pitch = pitch.squeeze(0)
         return pitch
 
+    def compute_f0_nn2(self, audio):
+        import torchcrepe
+        # Load audio
+        audio = torch.tensor(np.copy(audio))[None]
+        hop_length = 320
+        fmin = 50
+        fmax = 1000
+        model = "full"
+        batch_size = 512
+        sr = 32000
+        pitch, periodicity = torchcrepe.predict(
+            audio,
+            sr,
+            hop_length,
+            fmin,
+            fmax,
+            model,
+            batch_size=batch_size,
+            device=self.device,
+            return_periodicity=True,
+        )
+        periodicity = torchcrepe.filter.median(periodicity, 9)
+        pitch = torchcrepe.filter.mean(pitch, 9)
+        pitch[periodicity < 0.1] = 0
+        pitch = pitch.squeeze(0)
+        return pitch
+
     def load_speaker_emb(self, speaker_emb_file):
         return np.load(speaker_emb_file)
 
@@ -204,23 +249,17 @@ class InferTool:
         audio_data : np.ndarray,
         speaker_emb : np.ndarray,
         transpose = 0,
-        cluster_ratio = 0,
-        f0_method = "harvest"):
+        f0_method = "harvest",
+        x2_audio_data = None):
+
+        # Hypothesis: Higher resolution audio data is needed
+        # for pitch detection.
         assert self.model is not None
 
         start_time = time.time()
 
         ppg = np.array(self.pred_ppg(audio_data))
         vec = np.array(self.pred_vec(audio_data))
-
-        #if self.cluster_model is not None:
-        #    ppg_class = self.cluster_model.predict(ppg)
-        #    #print(ppg_class.shape)
-        #    ppg_cluster_predict = self.cluster_model.cluster_centers_[
-        #        ppg_class]
-        #    #print(ppg_cluster_predict.shape)
-        #    ppg = (cluster_ratio*ppg_cluster_predict +
-        #        (1 - cluster_ratio)*ppg)
 
         ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
         ppg = torch.FloatTensor(ppg)
@@ -234,8 +273,12 @@ class InferTool:
 
         if f0_method == "harvest":
             pit = self.compute_f0_harvest(audio_data)
+        if f0_method == "harvest2":
+            pit = self.compute_f0_harvest2(x2_audio_data)
         elif f0_method == "crepe":
             pit = self.compute_f0_nn(audio_data)
+        elif f0_method == "crepe2":
+            pit = self.compute_f0_nn2(x2_audio_data)
         elif f0_method == "parselmouth":
             pit = self.compute_f0_parselmouth_cc(audio_data)
         pit = pit * (2 ** (transpose / 12))

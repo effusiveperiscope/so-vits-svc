@@ -77,7 +77,7 @@ BASE_CFG_DIR = "configs/base.yaml"
 RECORD_DIR = "./recordings"
 JSON_NAME = "inference_gui_persist.json"
 RECENT_DIR_MAXLEN = 10
-F0_OPTIONS = ["harvest", "crepe", "parselmouth"]
+F0_OPTIONS = ["harvest2", "harvest", "crepe", "crepe2", "parselmouth"]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
 def get_speakers():
@@ -1076,6 +1076,7 @@ class InferenceGui2 (QMainWindow):
             for clean_name in clean_files:
                 clean_name = str(clean_name)
                 audio_data = load_audio(clean_name)
+                audio_data_32k = load_audio(clean_name, sr=32000)
                 wav_name = Path(clean_name).stem
 
                 # Is slicing still preferred?
@@ -1090,7 +1091,9 @@ class InferenceGui2 (QMainWindow):
 
                 f0_method = F0_OPTIONS[self.f0_box.currentIndex()]
                 out_audio = self.infer_tool.infer(
-                    audio_data, self.spk_emb, trans)
+                    audio_data, self.spk_emb, trans,
+                    f0_method = f0_method, # Oops
+                    x2_audio_data = audio_data_32k)
                 
                 res_path = os.path.join(self.output_dir,
                     f'{wav_name}_{trans}_'
