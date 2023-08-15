@@ -12,7 +12,8 @@
 - 本项目的目标群体是：深度学习初学者，具备Python和PyTorch的基本操作是使用本项目的前置条件；
 - 本项目旨在帮助深度学习初学者，摆脱枯燥的纯理论学习，通过与实践结合，熟练掌握深度学习基本知识；
 - 本项目不支持实时变声；（支持需要换掉whisper）
-- 本项目不会开发用于其他用途的一键包。（不会指没学会）
+- 本项目不会开发用于其他用途的一键包
+- **本项目使用简洁明了的代码结构，用于学习研究；不研究代码，只要效果，可直接用[so-vits-svc](https://github.com/svc-develop-team/so-vits-svc)**
 
 ![vits-5.0-frame](https://github.com/PlayVoice/so-vits-svc-5.0/assets/16432329/3854b281-8f97-4016-875b-6eb663c92466)
 
@@ -38,12 +39,16 @@ Powered by [@ShadowVap](https://space.bilibili.com/491283091)
 | neural source-filter | NII | ✅ | 解决断音问题 |
 | speaker encoder | Google | ✅ | 音色编码与聚类 |
 | GRL for speaker | Ubisoft |✅ | 对抗去音色 |
-| one shot vits |  Samsung | ✅ | VITS 一句话克隆 |
+| SNAC |  Samsung | ✅ | VITS 一句话克隆 |
 | SCLN |  Microsoft | ✅ | 改善克隆 |
 | PPG perturbation | 本项目 | ✅ | 提升抗噪性和去音色 |
 | HuBERT perturbation | 本项目 | ✅ | 提升抗噪性和去音色 |
 | VAE perturbation | 本项目 | ✅ | 提升音质 |
 | Mix encoder | 本项目 | ✅ | 提升转换稳定性 |
+| USP 推理 | 本项目 | ✅ | 提升转换稳定性 |
+
+**USP : 即使unvoice和silence在推理的时候，也有Pitch，这个Pitch平滑链接voice段**
+![vits_svc_usp](https://github.com/PlayVoice/so-vits-svc-5.0/assets/16432329/ba733b48-8a89-4612-83e0-a0745587d150)
 
 ## 安装环境
 
@@ -63,6 +68,8 @@ Powered by [@ShadowVap](https://space.bilibili.com/491283091)
 
 6.  下载音高提取模型[crepe full](https://github.com/maxrmorrison/torchcrepe/tree/master/torchcrepe/assets)，把`full.pth`放到`crepe/assets`里面
 
+    **注意：full.pth为84.9M，请确认文件大小无误**
+    
 7.  下载[sovits5.0.pretrain.pth](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0/), 把它放到`vits_pretrain/`里面，推理测试
 
     > python svc_inference.py --config configs/base.yaml --model ./vits_pretrain/sovits5.0.pretrain.pth --spk ./configs/singers/singer0001.npy --wave test.wav
@@ -191,7 +198,7 @@ data_svc/
    ```
 2. 恢复训练
    ```
-   python svc_trainer.py -c configs/base.yaml -n sovits5.0 -p chkpt/sovits5.0/***.pth
+   python svc_trainer.py -c configs/base.yaml -n sovits5.0 -p chkpt/sovits5.0/sovits5.0_***.pt
    ```
 3. 训练日志可视化
    ```
@@ -246,6 +253,25 @@ data_svc/
     | :---:  | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
     | name | 配置文件 | 模型文件 | 音色文件 | 音频文件 | ppg内容 | hubert内容 | 音高内容 | 升降调 |
 
+4. 去噪后处理
+```
+python svc_inference_post.py --ref test.wav --svc svc_out.wav --out svc_out_post.wav
+```
+
+## 两种训练模式
+- 分散模式：训练索引中，音色文件使用音频音色
+- 统一模式：训练索引中，音色文件使用发音人音色
+
+**问题：哪种情况下，哪个模式更好**
+
+## 模型融合
+```
+python svc_merge.py --model1 模型1.pt --model1 模型2.pt --rate 模型1占比(0~1)
+```
+对不同epoch的模型进行融合，可以获得比较平均的性能、削弱过拟合
+
+例如：python svc_merge.py --model1 chkpt\sovits5.0\sovits5.0_1045.pt --model2 chkpt\sovits5.0\sovits5.0_1050.pt --rate 0.4
+
 ## 捏音色
 纯属巧合的取名：average -> ave -> eva，夏娃代表者孕育和繁衍
 ```
@@ -280,6 +306,7 @@ eva_conf = {
 |DSD100         |https://sigsep.github.io/datasets/dsd100.html|
 |Aishell-3      |http://www.aishelltech.com/aishell_3|
 |VCTK           |https://datashare.ed.ac.uk/handle/10283/2651|
+|Korean Songs   |http://urisori.co.kr/urisori-en/doku.php/|
 
 ## 代码来源和参考文献
 
@@ -336,10 +363,3 @@ https://github.com/OlaWod/FreeVC/blob/main/preprocess_sr.py
 <a href="https://github.com/PlayVoice/so-vits-svc/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=PlayVoice/so-vits-svc" />
 </a>
-
-## 交流群
-<div align="center">
-
-![炼丹师公会-SVC群聊二维码](https://github.com/PlayVoice/vits_chinese/assets/16432329/1d728f61-be74-4706-9ecf-5cb0be4c094c)
-
-</div>

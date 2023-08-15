@@ -4,10 +4,12 @@ matplotlib
 soundfile
 scikit-learn
 scipy
-torchcrepe
 tensorboard
 transformers
 tqdm
 librosa
 omegaconf
 PyQt5
+gradio==3.36.1
+ruamel.yaml
+resampy

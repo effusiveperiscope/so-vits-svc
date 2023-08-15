@@ -7,6 +7,7 @@ def print_error(info):
     print(f"\033[31m File isn't existed: {info}\033[0m")
 
 
+IndexBySinger = False
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d","--data_dir", help="data_svc directory")

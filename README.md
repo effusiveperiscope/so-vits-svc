@@ -42,14 +42,19 @@ Powered by [@ShadowVap](https://space.bilibili.com/491283091)
 | neural source-filter | NII | ✅ | solve the problem of audio F0 discontinuity |
 | speaker encoder | Google | ✅ | Timbre Encoding and Clustering |
 | GRL for speaker | Ubisoft |✅ | Preventing Encoder Leakage Timbre |
-| one shot vits |  Samsung | ✅ | Voice Clone |
+| SNAC |  Samsung | ✅ | One Shot Clone of VITS |
 | SCLN |  Microsoft | ✅ | Improve Clone |
 | PPG perturbation | this project | ✅ | Improved noise immunity and de-timbre |
 | HuBERT perturbation | this project | ✅ | Improved noise immunity and de-timbre |
 | VAE perturbation | this project | ✅ | Improve sound quality |
 | MIX encoder | this project | ✅ | Improve conversion stability |
+| USP infer | this project | ✅ | Improve conversion stability |
 
 due to the use of data perturbation, it takes longer to train than other projects.
+
+**USP : Unvoice and Silence with Pitch when infer**
+![vits_svc_usp](https://github.com/PlayVoice/so-vits-svc-5.0/assets/16432329/ba733b48-8a89-4612-83e0-a0745587d150)
+
 
 ## Setup Environment
 
@@ -68,6 +73,8 @@ due to the use of data perturbation, it takes longer to train than other project
 
 6. Download pitch extractor [crepe full](https://github.com/maxrmorrison/torchcrepe/tree/master/torchcrepe/assets)，put `full.pth` into `crepe/assets`.
 
+   **Note: crepe full.pth is 84.9 MB, not 6kb**
+   
 7. Download pretrain model [sovits5.0.pretrain.pth](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0/), and put it into `vits_pretrain/`.
     ```shell
     python svc_inference.py --config configs/base.yaml --model ./vits_pretrain/sovits5.0.pretrain.pth --spk ./configs/singers/singer0001.npy --wave test.wav
@@ -95,7 +102,7 @@ dataset_raw
 
 ## Data preprocessing
 ```shell
-python sve_preprocessing.py -t 2
+python svc_preprocessing.py -t 2
 ```
 `-t`: threading, max number should not exceed CPU core count, usually 2 is enough.
 After preprocessing you will get an output with following structure.
@@ -205,7 +212,7 @@ data_svc/
    ``` 
 3. Resume training
    ```
-   python svc_trainer.py -c configs/base.yaml -n sovits5.0 -p chkpt/sovits5.0/***.pth
+   python svc_trainer.py -c configs/base.yaml -n sovits5.0 -p chkpt/sovits5.0/sovits5.0_***.pt
    ```
 4. Log visualization
    ```
@@ -260,6 +267,11 @@ data_svc/
     | :---:  | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
     | name | config path | model path | speaker | wave input | wave ppg | wave hubert | wave pitch | pitch shift |
 
+5. post by vad
+```
+python svc_inference_post.py --ref test.wav --svc svc_out.wav --out svc_out_post.wav
+```
+
 ## Creat singer
 named by pure coincidence：average -> ave -> eva，eve(eva) represents conception and reproduction
 
@@ -296,6 +308,7 @@ the generated singer file will be `eva.spk.npy`.
 |DSD100         |https://sigsep.github.io/datasets/dsd100.html|
 |Aishell-3      |http://www.aishelltech.com/aishell_3|
 |VCTK           |https://datashare.ed.ac.uk/handle/10283/2651|
+|Korean Songs   |http://urisori.co.kr/urisori-en/doku.php/|
 
 ## Code sources and references
 
@@ -352,3 +365,8 @@ https://github.com/OlaWod/FreeVC/blob/main/preprocess_sr.py
 <a href="https://github.com/PlayVoice/so-vits-svc/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=PlayVoice/so-vits-svc" />
 </a>
+
+## Relevant Projects
+- [LoRA-SVC](https://github.com/PlayVoice/lora-svc): decoder only svc
+- [NSF-BigVGAN](https://github.com/PlayVoice/NSF-BigVGAN): vocoder for more work
+- [X-SING](https://github.com/PlayVoice/X-SING): more work
