@@ -191,12 +191,8 @@ class InferTool:
             return_periodicity=True,
         )
         pitch = np.repeat(pitch, 2, -1)  # 320 -> 160 * 2
-        periodicity = np.repeat(periodicity, 2, -1)  # 320 -> 160 * 2
-        # CREPE was not trained on silent audio.
-        # some error on silent need filter.pitPath
-        periodicity = torchcrepe.filter.median(periodicity, 9)
-        pitch = torchcrepe.filter.mean(pitch, 9)
-        pitch[periodicity < 0.1] = 0
+        pitch = torchcrepe.filter.mean(pitch, 3)
+        pitch[periodicity < 0.05] = 0
         pitch = pitch.squeeze(0)
         return pitch
 
@@ -222,8 +218,8 @@ class InferTool:
             return_periodicity=True,
         )
         periodicity = torchcrepe.filter.median(periodicity, 9)
-        pitch = torchcrepe.filter.mean(pitch, 9)
-        pitch[periodicity < 0.1] = 0
+        pitch = torchcrepe.filter.mean(pitch, 3)
+        pitch[periodicity < 0.05] = 0
         pitch = pitch.squeeze(0)
         return pitch
 
