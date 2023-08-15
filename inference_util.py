@@ -249,7 +249,7 @@ class InferTool:
         audio_data : np.ndarray,
         speaker_emb : np.ndarray,
         transpose = 0,
-        f0_method = "harvest",
+        f0_method = "harvest2",
         x2_audio_data = None):
 
         # Hypothesis: Higher resolution audio data is needed
