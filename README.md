@@ -1,5 +1,5 @@
+# Notice
 
-<h1> Notice </h1>
 - This repo adds an inference GUI for so-vits-svc 5.0, `inference_gui.py`.
 - To install, `pip install -r requirements.txt` in a Python 3.8 environment.
 
