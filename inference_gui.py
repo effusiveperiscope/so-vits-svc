@@ -77,7 +77,7 @@ BASE_CFG_DIR = "configs/base.yaml"
 RECORD_DIR = "./recordings"
 JSON_NAME = "inference_gui_persist.json"
 RECENT_DIR_MAXLEN = 10
-F0_OPTIONS = ["harvest2", "harvest", "crepe", "crepe2", "parselmouth"]
+F0_OPTIONS = ["crepe2", "rmvpe", "harvest2", "crepe", "harvest", "parselmouth"]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
 def get_speakers():

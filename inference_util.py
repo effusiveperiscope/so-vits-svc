@@ -14,8 +14,10 @@ from whisper.model import Whisper, ModelDimensions
 from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 from hubert import hubert_model
 from sklearn.cluster import KMeans
+from pathlib import Path
 
 LOG_TIMES = True
+RMVPE_PATH = Path("rmvpe.pt")
 
 class InferTool:
     def __init__(self,
@@ -223,6 +225,15 @@ class InferTool:
         pitch = pitch.squeeze(0)
         return pitch
 
+    def compute_f0_rmvpe(self, audio):
+        if (hasattr(self, "rmvpe") == False) and RMVPE_PATH.is_file():
+            from rmvpe import RMVPE
+            self.rmvpe = RMVPE(
+                RMVPE_PATH, is_half=False, device=self.device
+            )
+        f0 = self.rmvpe.infer_from_audio(audio, thred=0.03)
+        return f0
+
     def load_speaker_emb(self, speaker_emb_file):
         return np.load(speaker_emb_file)
 
@@ -277,6 +288,10 @@ class InferTool:
             pit = self.compute_f0_nn2(x2_audio_data)
         elif f0_method == "parselmouth":
             pit = self.compute_f0_parselmouth_cc(audio_data)
+        elif f0_method == "rmvpe":
+            pit = self.compute_f0_rmvpe(audio_data)
+        print(pit.shape)
+        print(pit.mean())
         pit = pit * (2 ** (transpose / 12))
         pit = torch.FloatTensor(pit)
 
