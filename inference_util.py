@@ -15,6 +15,7 @@ from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 from hubert import hubert_model
 from sklearn.cluster import KMeans
 from pathlib import Path
+from feature_retrieval import IRetrieval, DummyRetrieval, FaissIndexRetrieval, load_retrieve_index
 
 LOG_TIMES = True
 RMVPE_PATH = Path("rmvpe.pt")
@@ -29,7 +30,39 @@ class InferTool:
         self.whisper = self.load_whisper_model(whisper_path)
         self.hubert = self.load_hubert_model(hubert_path)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.retrieval = None
         pass
+
+    def load_retrieval(self,
+        hubert_path, whisper_path,
+        ratio, n_nearest_vectors) -> IRetrieval:
+        if (hubert_path is None) or (whisper_path is None):
+            self.retrieval = None
+            return self.retrieval
+        #print(f"Loading retrieval models from {hubert_path}, {whisper_path}")
+        self.retrieval = FaissIndexRetrieval(
+            hubert_index=load_retrieve_index(
+                filepath=hubert_path,
+                ratio=ratio,
+                n_nearest_vectors=n_nearest_vectors
+            ),
+            whisper_index=load_retrieve_index(
+                filepath=whisper_path,
+                ratio=ratio,
+                n_nearest_vectors=n_nearest_vectors
+            ),
+        )
+        return self.retrieval
+
+    def set_retrieval_ratio(self, ratio: float):
+        if self.retrieval is None:
+            return
+        self.retrieval._ratio = ratio
+
+    def set_retrieval_n_vec(self, n_nearest_vectors: int):
+        if self.retrieval is None:
+            return
+        self.retrieval._n_nearest = n_nearest_vectors
 
     def load_whisper_model(self, path) -> Whisper:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -322,10 +355,8 @@ class InferTool:
             out_chunk = 2500  # 25 S
             out_index = 0
             out_audio = []
-            has_audio = False
 
-            while (out_index + out_chunk < all_frame):
-                has_audio = True
+            while (out_index < all_frame):
                 if (out_index == 0):  # start frame
                     cut_s = 0
                     cut_s_out = 0
@@ -335,14 +366,21 @@ class InferTool:
 
                 # end frame
                 if (out_index + out_chunk + hop_frame > all_frame):  
-                    cut_e = out_index + out_chunk
-                    cut_e_out = 0
+                    cut_e = all_frame
+                    cut_e_out = -1
                 else:
                     cut_e = out_index + out_chunk + hop_frame
                     cut_e_out = -1 * hop_frame * hop_size
 
-                sub_ppg = ppg[cut_s:cut_e, :].unsqueeze(0).to(self.device)
-                sub_vec = vec[cut_s:cut_e, :].unsqueeze(0).to(self.device)
+                if self.retrieval is not None:
+                    print("Using retrieval")
+                    sub_ppg = self.retrieval.retriv_whisper(
+                        ppg[cut_s:cut_e, :]).unsqueeze(0).to(self.device)
+                    sub_vec = self.retrieval.retriv_hubert(
+                        vec[cut_s:cut_e, :]).unsqueeze(0).to(self.device)
+                else:
+                    sub_ppg = ppg[cut_s:cut_e, :].unsqueeze(0).to(self.device)
+                    sub_vec = vec[cut_s:cut_e, :].unsqueeze(0).to(self.device)
                 sub_pit = pit[cut_s:cut_e].unsqueeze(0).to(self.device)
                 sub_len = torch.LongTensor([cut_e - cut_s]).to(self.device)
                 sub_har = source[:, :, cut_s *
@@ -355,24 +393,6 @@ class InferTool:
                 out_audio.extend(sub_out)
                 out_index = out_index + out_chunk
 
-            if (out_index < all_frame):
-                if (has_audio):
-                    cut_s = out_index - hop_frame
-                    cut_s_out = hop_frame * hop_size
-                else:
-                    cut_s = 0
-                    cut_s_out = 0
-                sub_ppg = ppg[cut_s:, :].unsqueeze(0).to(self.device)
-                sub_vec = vec[cut_s:, :].unsqueeze(0).to(self.device)
-                sub_pit = pit[cut_s:].unsqueeze(0).to(self.device)
-                sub_len = torch.LongTensor([all_frame - cut_s]).to(self.device)
-                sub_har = source[:, :, cut_s * hop_size:].to(self.device)
-                sub_out = self.model.inference(
-                    sub_ppg, sub_vec, sub_pit, spk, sub_len, sub_har)
-                sub_out = sub_out[0, 0].data.cpu().detach().numpy()
-
-                sub_out = sub_out[cut_s_out:]
-                out_audio.extend(sub_out)
             out_audio = np.asarray(out_audio)
 
         infer_time = time.time()

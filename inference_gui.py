@@ -100,6 +100,7 @@ def get_speakers():
         g = glob.glob(os.path.join(MODELS_DIR,folder,"singer","*.spk.npy"))
         for name in g:
             cur_speaker["name"] = Path(name).stem.split('.')[0]
+            spk_name = cur_speaker["name"]
             cur_speaker["spk_path"] = name
 
             # Look for cluster checkpoints
@@ -109,6 +110,23 @@ def get_speakers():
                 cur_speaker["cluster_path"] = cluster_path
             else:
                 cur_speaker["cluster_path"] = None
+
+            # Look for retrieval indexes
+            hubert_g = glob.glob(
+                os.path.join(
+                    MODELS_DIR,folder,"indexes",spk_name,"*hubert.index"))
+            whisper_g = glob.glob(
+                os.path.join(
+                    MODELS_DIR,folder,"indexes",spk_name,"*whisper.index"))
+            #print(hubert_g)
+            if (len(hubert_g) and len(whisper_g)):
+                cur_speaker["index_paths"] = {
+                    "hubert": hubert_g[0], "whisper": whisper_g[0]}
+            else:
+                cur_speaker["index_paths"] = {
+                    "hubert": None,
+                    "whisper": None
+                }
 
             speakers.append(copy.copy(cur_speaker))
 
@@ -149,11 +167,15 @@ class FieldWidget(QFrame):
         self.layout.setContentsMargins(0,0,0,0)
         label.setAlignment(Qt.AlignLeft)
         self.layout.addWidget(label)
+        self.field = field
         field.setAlignment(Qt.AlignRight)
         field.sizeHint = lambda: QSize(60, 32)
         field.setSizePolicy(QSizePolicy.Maximum,
             QSizePolicy.Preferred)
         self.layout.addWidget(field)
+
+    def setEnabled(self, val):
+        self.field.setEnabled(val)
 
 class VSTWidget(QWidget):
     sig_editor_open = pyqtSignal(bool)
@@ -667,6 +689,22 @@ class InferenceGui2 (QMainWindow):
         self.transpose_num = QLineEdit('0')
         self.transpose_num.setValidator(self.transpose_validator)
 
+        self.ratio_validator = QDoubleValidator(0.0,1.0,2)
+        self.ratio_label = QLabel("Retrieval Ratio")
+        self.ratio_num = QLineEdit('0.0')
+        self.ratio_num.setValidator(self.ratio_validator)
+        self.ratio_frame = FieldWidget(
+            self.ratio_label, self.ratio_num)
+        self.sovits_lay.addWidget(self.ratio_frame)
+
+        self.num_vec_validator = QIntValidator(1,10000)
+        self.num_vec_label = QLabel("Number of retrieval vectors")
+        self.num_vec_num = QLineEdit('3')
+        self.num_vec_num.setValidator(self.ratio_validator)
+        self.num_vec_frame = FieldWidget(
+            self.num_vec_label, self.num_vec_num)
+        self.sovits_lay.addWidget(self.num_vec_frame)
+
         self.f0_label = QLabel("f0 detection method")
         self.sovits_lay.addWidget(self.f0_label)
         self.f0_box = QComboBox()
@@ -963,6 +1001,13 @@ class InferenceGui2 (QMainWindow):
         self.infer_tool.load_cluster(
             self.speakers[index]["cluster_path"])
 
+        if self.speakers[index]["index_paths"]["hubert"] is None:
+            self.ratio_frame.setEnabled(False)
+            self.num_vec_frame.setEnabled(False)
+        else:
+            self.ratio_frame.setEnabled(True)
+            self.num_vec_frame.setEnabled(True)
+
         if (self.speaker.get("model_path") is None or
             self.speakers[index]["model_path"] !=
             self.speaker["model_path"]):
@@ -1069,6 +1114,14 @@ class InferenceGui2 (QMainWindow):
     def convert(self, clean_files = [],
         dry_trans = None):
         res_paths = []
+        
+        ratio = float(self.ratio_num.text())
+        n_retrieval_vec = int(self.num_vec_num.text())
+        self.infer_tool.load_retrieval(
+            self.speaker["index_paths"]["hubert"],
+            self.speaker["index_paths"]["whisper"],
+            ratio, n_retrieval_vec)
+
         trans = dry_trans
         if trans is None:
             trans = int(self.transpose_num.text())
@@ -1078,8 +1131,6 @@ class InferenceGui2 (QMainWindow):
                 audio_data = load_audio(clean_name)
                 audio_data_32k = load_audio(clean_name, sr=32000)
                 wav_name = Path(clean_name).stem
-
-                # Is slicing still preferred?
 
                 if PEDALBOARD_AVAILABLE:
                     audio_data = self.audio_recorder_and_plugins.input_chain(
