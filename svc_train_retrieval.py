@@ -71,6 +71,8 @@ def main() -> None:
                                  "feature vectors using MiniBatchKMeans.")
     arg_parser.add_argument("--n-clusters", type=int, default=10_000,
                             help="Number of centroids to which features will be compressed")
+    arg_parser.add_argument("--base-path", type=str, default="data_svc",
+        help="Base path for SVC data")
 
     arg_parser.add_argument("--n-parallel", type=int, default=multiprocessing.cpu_count()-1,
                             help="Nuber of parallel job of MinibatchKmeans. Default is cpus-1")
@@ -81,7 +83,7 @@ def main() -> None:
     else:
         logging.basicConfig(level=logging.INFO)
 
-    base_path = Path(".").absolute() / "data_svc"
+    base_path = Path(".").absolute() / args.base_path
     if args.speakers:
         speakers = args.speakers
     else:
