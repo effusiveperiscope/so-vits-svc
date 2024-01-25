@@ -705,6 +705,11 @@ class InferenceGui2 (QMainWindow):
             self.num_vec_label, self.num_vec_num)
         self.sovits_lay.addWidget(self.num_vec_frame)
 
+        self.nuwave_check = QCheckBox("NuWave2 SuperResolution to 48khz")
+        self.sovits_lay.addWidget(self.nuwave_check)
+        from lib.nuwave2.inference import NuWave2Inference
+        self.nwi = NuWave2Inference()
+
         self.f0_label = QLabel("f0 detection method")
         self.sovits_lay.addWidget(self.f0_label)
         self.f0_box = QComboBox()
@@ -1145,7 +1150,17 @@ class InferenceGui2 (QMainWindow):
                     audio_data, self.spk_emb, trans,
                     f0_method = f0_method, # Oops
                     x2_audio_data = audio_data_32k)
-                
+
+                out_sr = self.infer_tool.hp.data.sampling_rate
+
+
+                if self.nuwave_check.isChecked():
+                    out_sr = self.nwi.out_sr
+                    out_audio_max = np.max(np.abs(out_audio))
+                    out_audio = self.nwi.infer(out_audio).squeeze(
+                        0).cpu().numpy()
+                    out_audio *= out_audio_max
+
                 res_path = os.path.join(self.output_dir,
                     f'{wav_name}_{trans}_'
                     f'{self.speaker["name"]}.{wav_format}')
@@ -1159,7 +1174,7 @@ class InferenceGui2 (QMainWindow):
                     i += 1
 
                 write(res_path,
-                    self.infer_tool.hp.data.sampling_rate, out_audio)
+                    out_sr, out_audio)
 
                 res_paths.append(res_path)
 

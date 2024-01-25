@@ -16,3 +16,6 @@ resampy
 numpy==1.24
 chardet
 faiss-cpu==1.7.4
+ffmpeg
+prefetch_generator
+pytorch_lightning

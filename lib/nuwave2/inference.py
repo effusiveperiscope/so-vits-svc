@@ -28,6 +28,7 @@ class NuWave2Inference:
         ckpt = torch.load(checkpoint, map_location='cpu')
         self.model.load_state_dict(
             ckpt['state_dict'] if not ('EMA' in checkpoint) else ckpt)
+        self.out_sr = self.hparams.audio.sampling_rate
 
     def infer(self,
         sound,
@@ -37,7 +38,7 @@ class NuWave2Inference:
         sound /= np.max(np.abs(sound))
 
         sound_l = resample_poly(sound, self.hparams.audio.sampling_rate, initial_sr)
-        sound_l = sound[:len(sound) - len(sound) % self.hparams.audio.hop_length]
+        sound_l = sound_l[:len(sound_l) - len(sound_l) % self.hparams.audio.hop_length]
 
         highcut = initial_sr // 2
         nyq = 0.5 * self.hparams.audio.sampling_rate
@@ -55,7 +56,8 @@ class NuWave2Inference:
             sound_l, band, steps, noise_schedule)
         
         wav_recon = torch.clamp(
-            wav_recon, min=-1, max=1 - torch.finfo(torch.float16).eps)
+            wav_recon, min=-1,
+                max=1 - torch.finfo(torch.float16).eps)
         return wav_recon
 
 
