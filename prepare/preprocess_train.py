@@ -2,6 +2,13 @@ import os
 import random
 import argparse
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
 
 def print_error(info):
     print(f"\033[31m File isn't existed: {info}\033[0m")
@@ -25,12 +32,12 @@ if __name__ == "__main__":
         for file in os.listdir(f"./{rawPath}/{spks}"):
             if file.endswith(".wav"):
                 file = file[:-4]
-                path_spk = dataPath+f"/speaker/{spks}/{file}.spk.npy"
-                path_wave = dataPath+f"/waves-32k/{spks}/{file}.wav"
-                path_spec = dataPath+f"/specs/{spks}/{file}.pt"
-                path_pitch = dataPath+f"/pitch/{spks}/{file}.pit.npy"
-                path_hubert = dataPath+f"/hubert/{spks}/{file}.vec.npy"
-                path_whisper = dataPath+f"/whisper/{spks}/{file}.ppg.npy"
+                path_spk = longpath(dataPath+f"/speaker/{spks}/{file}.spk.npy")
+                path_wave = longpath(dataPath+f"/waves-32k/{spks}/{file}.wav")
+                path_spec = longpath(dataPath+f"/specs/{spks}/{file}.pt")
+                path_pitch = longpath(dataPath+f"/pitch/{spks}/{file}.pit.npy")
+                path_hubert = longpath(dataPath+f"/hubert/{spks}/{file}.vec.npy")
+                path_whisper = longpath(dataPath+f"/whisper/{spks}/{file}.ppg.npy")
                 has_error = 0
                 if not os.path.isfile(path_spk):
                     print_error(path_spk)

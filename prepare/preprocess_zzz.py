@@ -7,7 +7,6 @@ from vits.data_utils import TextAudioSpeakerSet
 from vits.data_utils import TextAudioSpeakerCollate
 from vits.data_utils import DistributedBucketSampler
 
-
 hps = OmegaConf.load("./configs/base.yaml")
 dataset = TextAudioSpeakerSet("files/valid.txt", hps.data)
 

@@ -9,6 +9,15 @@ from whisper.model import Whisper, ModelDimensions
 from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 
 
+
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
+
 def load_model(path) -> Whisper:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     checkpoint = torch.load(path, map_location="cpu")
@@ -65,8 +74,9 @@ if __name__ == "__main__":
                 if file.endswith(".wav"):
                     # print(file)
                     file = file[:-4]
-                    path_wav = f"{wavPath}/{spks}/{file}.wav"
-                    path_ppg = f"{ppgPath}/{spks}/{file}.ppg"
-                    if os.path.isfile(f"{path_ppg}.npy"):
+                    path_wav = longpath(f"{wavPath}/{spks}/{file}.wav")
+                    path_ppg = longpath(f"{ppgPath}/{spks}/{file}.ppg")
+                    path_ppg_npy = longpath(f"{ppgPath}/{spks}/{file}.ppg.npy")
+                    if os.path.isfile(path_ppg_npy):
                         continue
                     pred_ppg(whisper, path_wav, path_ppg)

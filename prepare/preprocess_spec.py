@@ -10,6 +10,14 @@ from vits import utils
 from omegaconf import OmegaConf
 
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
+
 def compute_spec(hps, filename, specname):
     audio, sampling_rate = utils.load_wav_to_torch(filename)
     assert sampling_rate == hps.sampling_rate, f"{sampling_rate} is not {hps.sampling_rate}"
@@ -28,7 +36,7 @@ def compute_spec(hps, filename, specname):
 def process_file(file):
     if file.endswith(".wav"):
         file = file[:-4]
-        compute_spec(hps.data, f"{wavPath}/{spks}/{file}.wav", f"{spePath}/{spks}/{file}.pt")
+        compute_spec(hps.data, longpath(f"{wavPath}/{spks}/{file}.wav"), longpath(f"{spePath}/{spks}/{file}.pt"))
 
 
 def process_files_with_thread_pool(wavPath, spks, thread_num):

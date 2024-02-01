@@ -9,6 +9,14 @@ from tqdm import tqdm
 from hubert import hubert_model
 
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
+
 def load_audio(file: str, sr: int = 16000):
     x, sr = librosa.load(file, sr=sr)
     return x
@@ -55,4 +63,6 @@ if __name__ == "__main__":
             files = [f for f in os.listdir(f"./{wavPath}/{spks}") if f.endswith(".wav")]
             for file in tqdm(files, desc=f'Processing vec {spks}'):
                 file = file[:-4]
-                pred_vec(hubert, f"{wavPath}/{spks}/{file}.wav", f"{vecPath}/{spks}/{file}.vec", device)
+                pred_vec(hubert, 
+                    longpath(f"{wavPath}/{spks}/{file}.wav"), 
+                    longpath(f"{vecPath}/{spks}/{file}.vec"), device)

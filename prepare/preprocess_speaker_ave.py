@@ -4,6 +4,13 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -22,7 +29,7 @@ if __name__ == "__main__":
         for file in tqdm(os.listdir(os.path.join(data_speaker, speaker)), desc=f"average {speaker}"):
             if not file.endswith(".npy"):
                 continue
-            source_embed = np.load(os.path.join(data_speaker, speaker, file))
+            source_embed = np.load(longpath(os.path.join(data_speaker, speaker, file)))
             source_embed = source_embed.astype(np.float32)
             speaker_ave = speaker_ave + source_embed
             subfile_num = subfile_num + 1
@@ -43,7 +50,7 @@ if __name__ == "__main__":
         for file in tqdm(os.listdir(os.path.join(data_speaker, speaker)), desc=f"rewrite {speaker}"):
             if not file.endswith(".npy"):
                 continue
-            cmp_tmp = np.load(os.path.join(data_speaker, speaker, file))
+            cmp_tmp = np.load(longpath(os.path.join(data_speaker, speaker, file)))
             cmp_tmp = cmp_tmp.astype(np.float32)
             cmp_tmp = torch.FloatTensor(cmp_tmp)
             cmp_cos = torch.cosine_similarity(cmp_src, cmp_tmp, dim=0)

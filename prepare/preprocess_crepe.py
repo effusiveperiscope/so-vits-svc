@@ -7,6 +7,13 @@ import crepe
 import argparse
 from tqdm import tqdm
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
 
 def compute_f0(filename, save, device):
     audio, sr = librosa.load(filename, sr=16000)
@@ -66,4 +73,6 @@ if __name__ == "__main__":
             files = [f for f in os.listdir(f"./{wavPath}/{spks}") if f.endswith(".wav")]
             for file in tqdm(files, desc=f'Processing crepe {spks}'):
                 file = file[:-4]
-                compute_f0(f"{wavPath}/{spks}/{file}.wav", f"{pitPath}/{spks}/{file}.pit", device)
+                compute_f0(
+                    longpath(f"{wavPath}/{spks}/{file}.wav"), 
+                    longpath(f"{pitPath}/{spks}/{file}.pit"), device)

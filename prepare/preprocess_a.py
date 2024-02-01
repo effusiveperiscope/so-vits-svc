@@ -7,6 +7,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from scipy.io import wavfile
 
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
+
 def resample_wave(wav_in, wav_out, sample_rate):
     wav, _ = librosa.load(wav_in, sr=sample_rate)
     wav = wav / np.abs(wav).max() * 0.6
@@ -17,7 +25,9 @@ def resample_wave(wav_in, wav_out, sample_rate):
 def process_file(file, wavPath, spks, outPath, sr):
     if file.endswith(".wav"):
         file = file[:-4]
-        resample_wave(f"{wavPath}/{spks}/{file}.wav", f"{outPath}/{spks}/{file}.wav", sr)
+        resample_wave(
+            longpath(f"{wavPath}/{spks}/{file}.wav"), 
+            longpath(f"{outPath}/{spks}/{file}.wav"), sr)
 
 
 def process_files_with_thread_pool(wavPath, spks, outPath, sr, thread_num=None):

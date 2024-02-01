@@ -15,6 +15,14 @@ from speaker.utils.audio import AudioProcessor
 from speaker.infer import read_json
 
 
+def longpath(path):
+    import platform
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
+
 def get_spk_wavs(dataset_path, output_path):
     wav_files = []
     os.makedirs(f"./{output_path}", exist_ok=True)
@@ -23,15 +31,15 @@ def get_spk_wavs(dataset_path, output_path):
             os.makedirs(f"./{output_path}/{spks}", exist_ok=True)
             for file in os.listdir(f"./{dataset_path}/{spks}"):
                 if file.endswith(".wav"):
-                    wav_files.append(f"./{dataset_path}/{spks}/{file}")
+                    wav_files.append(longpath(f"./{dataset_path}/{spks}/{file}"))
         elif spks.endswith(".wav"):
-            wav_files.append(f"./{dataset_path}/{spks}")
+            wav_files.append(longpath(f"./{dataset_path}/{spks}"))
     return wav_files
 
 
 def process_wav(wav_file, dataset_path, output_path, args, speaker_encoder_ap, speaker_encoder):
     waveform = speaker_encoder_ap.load_wav(
-        wav_file, sr=speaker_encoder_ap.sample_rate
+        longpath(wav_file), sr=speaker_encoder_ap.sample_rate
     )
     spec = speaker_encoder_ap.melspectrogram(waveform)
     spec = torch.from_numpy(spec.T)
@@ -42,7 +50,7 @@ def process_wav(wav_file, dataset_path, output_path, args, speaker_encoder_ap, s
     embed = embed.squeeze()
     embed_path = wav_file.replace(dataset_path, output_path)
     embed_path = embed_path.replace(".wav", ".spk")
-    np.save(embed_path, embed, allow_pickle=False)
+    np.save(longpath(embed_path), embed, allow_pickle=False)
 
 
 def extract_speaker_embeddings(wav_files, dataset_path, output_path, args, speaker_encoder_ap, speaker_encoder, concurrency):

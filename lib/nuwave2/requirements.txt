@@ -1,6 +1,0 @@
-ffmpeg
-prefetch_generator
-librosa==0.10.1
-omegaconf==2.0.6
-pytorch_lightning==1.2.10
-matplotlib
