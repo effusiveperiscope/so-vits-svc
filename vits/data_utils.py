@@ -9,6 +9,7 @@ from vits.utils import load_wav_to_torch
 
 def longpath(path):
     import platform
+    path = os.path.abspath(path)
     if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
         path = u'\\\\?\\'+path.replace('/','\\')
         return path
@@ -17,8 +18,7 @@ def longpath(path):
 
 def load_filepaths(filename, split="|"):
     with open(filename, encoding='utf-8') as f:
-        filepaths = [line.strip().split(split) for line in f]
-        filepaths = [longpath(path) for path in filepaths]
+        filepaths = [[longpath(path) for path in line.strip().split(split)] for line in f]
     return filepaths
 
 class TextAudioSpeakerSet(torch.utils.data.Dataset):

@@ -4,6 +4,7 @@ import argparse
 
 def longpath(path):
     import platform
+    path = os.path.abspath(path)
     if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
         path = u'\\\\?\\'+path.replace('/','\\')
         return path
@@ -62,9 +63,9 @@ if __name__ == "__main__":
                         f"{path_wave}|{path_spec}|{path_pitch}|{path_hubert}|{path_whisper}|{path_spk}")
 
     random.shuffle(all_items)
-    valids = all_items[:10]
+    valids = all_items[:1]
     valids.sort()
-    trains = all_items[10:]
+    trains = all_items[1:]
     # trains.sort()
     fw = open("./files/valid.txt", "w", encoding="utf-8")
     for strs in valids:

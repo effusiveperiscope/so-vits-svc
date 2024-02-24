@@ -9,6 +9,7 @@ from scipy.io import wavfile
 
 def longpath(path):
     import platform
+    path = os.path.abspath(path)
     if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
         path = u'\\\\?\\'+path.replace('/','\\')
         return path
@@ -20,7 +21,6 @@ def resample_wave(wav_in, wav_out, sample_rate):
     wav = wav / np.abs(wav).max() * 0.6
     wav = wav / max(0.01, np.max(np.abs(wav))) * 32767 * 0.6
     wavfile.write(wav_out, sample_rate, wav.astype(np.int16))
-
 
 def process_file(file, wavPath, spks, outPath, sr):
     if file.endswith(".wav"):

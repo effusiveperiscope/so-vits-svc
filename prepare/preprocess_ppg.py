@@ -12,6 +12,7 @@ from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 
 def longpath(path):
     import platform
+    path = os.path.abspath(path)
     if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
         path = u'\\\\?\\'+path.replace('/','\\')
         return path
