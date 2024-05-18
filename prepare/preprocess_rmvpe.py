@@ -19,6 +19,7 @@ def longpath(path):
         return path
 
 RMVPE_MODEL_PATH = 'rmvpe.pt'
+device = "cuda" if torch.cuda.is_available() else "cpu"
 rmvpe = RMVPE(RMVPE_MODEL_PATH, is_half=False, device=device)
 
 def compute_f0(filename, save, device):
