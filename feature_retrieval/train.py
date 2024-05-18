@@ -2,11 +2,20 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
+import os
 
 from feature_retrieval import NumpyArray
 from feature_retrieval.index import FaissIVFFlatTrainableFeatureIndexBuilder, logger
 from feature_retrieval.transform import IFeatureMatrixTransform
 
+def longpath(path):
+    import platform
+    path = os.path.abspath(path)
+    if 'Windows' in platform.system() and not path.startswith('\\\\?\\'):
+        path = u'\\\\?\\'+path.replace('/','\\')
+        return path
+    else:
+        return path
 
 def train_index(
     features_path: Path,
@@ -32,6 +41,6 @@ def train_index(
 
 
 def get_feature_matrix(features_dir_path: Path) -> NumpyArray:
-    matrices = [np.load(str(features_path)) for features_path in features_dir_path.rglob("*.npy")]
+    matrices = [np.load(longpath(str(features_path))) for features_path in features_dir_path.rglob("*.npy")]
     feature_matrix = np.concatenate(matrices, axis=0)
     return cast(NumpyArray, feature_matrix)
