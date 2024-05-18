@@ -468,7 +468,7 @@ class E2E(nn.Module):
             )
 
     def forward(self, mel):
-        print(f"e2e mel.shape: {mel.shape}")
+        #print(f"e2e mel.shape: {mel.shape}")
         mel = mel.transpose(-1, -2).unsqueeze(1)
         x = self.cnn(self.unet(mel)).transpose(1, 2).flatten(-2)
         x = self.fc(x)
