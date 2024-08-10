@@ -62,6 +62,7 @@ if __name__ == "__main__":
                     all_items.append(
                         f"{path_wave}|{path_spec}|{path_pitch}|{path_hubert}|{path_whisper}|{path_spk}")
 
+    random.seed(42)
     random.shuffle(all_items)
     valids = all_items[:1]
     valids.sort()
