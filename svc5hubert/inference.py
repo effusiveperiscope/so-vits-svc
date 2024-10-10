@@ -5,7 +5,7 @@ import argparse
 import torch
 import librosa
 
-from hubert import hubert_model
+from svc5hubert import hubert_model
 
 
 def load_audio(file: str, sr: int = 16000):

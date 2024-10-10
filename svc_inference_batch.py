@@ -4,7 +4,7 @@ import tqdm
 import torch
 import argparse
 
-from whisper.inference import load_model, pred_ppg
+from svc5whisper.inference import load_model, pred_ppg
 
 # How to use
 # python svc_inference_batch.py --config configs/base.yaml --model vits_pretrain/sovits5.0.pth --wave test_waves/ --spk configs/singers/singer0047.npy
