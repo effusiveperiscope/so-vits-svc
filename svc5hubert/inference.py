@@ -23,8 +23,6 @@ def load_model(path, device):
 
 
 def pred_vec(model, wavPath, vecPath, device):
-    import pdb
-    pdb.set_trace()
     audio = load_audio(wavPath)
     audln = audio.shape[0]
     vec_a = []

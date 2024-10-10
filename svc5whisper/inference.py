@@ -30,8 +30,6 @@ def load_model(path, device) -> Whisper:
 
 
 def pred_ppg(whisper: Whisper, wavPath, ppgPath, device):
-    import pdb
-    pdb.set_trace()
     audio = load_audio(wavPath)
     audln = audio.shape[0]
     ppg_a = []
