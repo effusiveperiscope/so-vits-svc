@@ -1,0 +1,12 @@
+*.pt
+*.wav
+*.ipynb
+crepe/assets/*
+data_svc
+dataset_raw
+__pycache__
+logs
+files
+speaker_pretrain/*
+vits_pretrain/*
+models

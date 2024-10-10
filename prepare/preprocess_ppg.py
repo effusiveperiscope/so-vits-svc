@@ -5,8 +5,8 @@ import argparse
 import torch
 import random
 from tqdm import tqdm
-from whisper.model import Whisper, ModelDimensions
-from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
+from svc5whisper.model import Whisper, ModelDimensions
+from svc5whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 
 
 def load_model(path) -> Whisper:
@@ -21,8 +21,8 @@ def load_model(path) -> Whisper:
     del model.encoder.blocks[cut:]
     model.load_state_dict(checkpoint["model_state_dict"], strict=False)
     model.eval()
-    model.half()
-    model.to(device)
+    model = model.half()
+    model = model.to(device)
     return model
 
 
@@ -32,6 +32,8 @@ def pred_ppg(whisper: Whisper, wavPath, ppgPath):
     ppgln = audln // 320
     audio = pad_or_trim(audio)
     mel = log_mel_spectrogram(audio).half().to(whisper.device)
+    # import pdb
+    # pdb.set_trace()
     with torch.no_grad():
         ppg = whisper.encoder(mel.unsqueeze(0)).squeeze().data.cpu().float().numpy()
         ppg = ppg[:ppgln,]  # [length, dim=1280]
