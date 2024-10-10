@@ -6,7 +6,7 @@ import torch
 import librosa
 
 from tqdm import tqdm
-from hubert import hubert_model
+from svc5hubert import hubert_model
 
 
 def longpath(path):

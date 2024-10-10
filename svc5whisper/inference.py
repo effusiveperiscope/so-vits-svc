@@ -4,8 +4,8 @@ import numpy as np
 import argparse
 import torch
 
-from whisper.model import Whisper, ModelDimensions
-from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
+from svc5whisper.model import Whisper, ModelDimensions
+from svc5whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 
 
 def load_model(path, device) -> Whisper:
@@ -14,9 +14,9 @@ def load_model(path, device) -> Whisper:
     # print(dims)
     model = Whisper(dims)
     del model.decoder
-    cut = len(model.encoder.blocks) // 4
-    cut = -1 * cut
-    del model.encoder.blocks[cut:]
+    #cut = len(model.encoder.blocks) // 4
+    #cut = -1 * cut
+    #del model.encoder.blocks[cut:]
     model.load_state_dict(checkpoint["model_state_dict"], strict=False)
     model.eval()
     if not (device == "cpu"):

@@ -10,9 +10,9 @@ import scipy.signal as signal
 from vits.models import SynthesizerInfer
 from pitch import load_csv_pitch
 
-from whisper.model import Whisper, ModelDimensions
-from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
-from hubert import hubert_model
+from svc5whisper.model import Whisper, ModelDimensions
+from svc5whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
+from svc5hubert import hubert_model
 from sklearn.cluster import KMeans
 from pathlib import Path
 from feature_retrieval import IRetrieval, DummyRetrieval, FaissIndexRetrieval, load_retrieve_index
@@ -36,7 +36,7 @@ class InferTool:
     def load_retrieval(self,
         hubert_path, whisper_path,
         ratio, n_nearest_vectors) -> IRetrieval:
-        if (hubert_path is None) or (whisper_path is None):
+        if (hubert_path is None) or (whisper_path is None) or ratio == 0.0:
             self.retrieval = None
             return self.retrieval
         #print(f"Loading retrieval models from {hubert_path}, {whisper_path}")
@@ -69,7 +69,15 @@ class InferTool:
         checkpoint = torch.load(path, map_location=device)
         dims = ModelDimensions(**checkpoint["dims"])
         model = Whisper(dims)
+        # But why did they do this?
+        # XXX
+        # del model.decoder
+        # cut = len(model.encoder.blocks) // 4
+        # cut = -1 * cut
+        # del model.encoder.blocks[cut:]
+        # XXX
         model.load_state_dict(checkpoint["model_state_dict"])
+        model.half()
         return model.to(device)
 
     def load_hubert_model(self, path):
@@ -108,6 +116,8 @@ class InferTool:
         pass
 
     def pred_vec(self, wav_data):
+        #import pdb
+        #pdb.set_trace()
         audio = wav_data
         audln = audio.shape[0]
         vec_a = []
@@ -133,17 +143,22 @@ class InferTool:
         return vec_a
 
     def pred_ppg(self, wav_data):
+        #import pdb
+        #pdb.set_trace()
         audio = wav_data 
         audln = audio.shape[0]
         ppg_a = []
         idx_s = 0
+        # it's 15 instead of 25
+        torch.manual_seed(42)
         while (idx_s + 25 * 16000 < audln):
             short = audio[idx_s:idx_s + 25 * 16000]
             idx_s = idx_s + 25 * 16000
             ppgln = 25 * 16000 // 320
             # short = pad_or_trim(short)
-            mel = log_mel_spectrogram(short).to(self.device)
+            mel = log_mel_spectrogram(short).to(self.device).half()
             with torch.no_grad():
+                #mel = mel + torch.randn_like(mel) * 0.1 # XXX 
                 ppg = self.whisper.encoder(
                     mel.unsqueeze(0)).squeeze().data.cpu().float().numpy()
                 ppg = ppg[:ppgln,]  # [length, dim=1024]
@@ -151,8 +166,9 @@ class InferTool:
         if (idx_s < audln):
             short = audio[idx_s:audln]
             ppgln = (audln - idx_s) // 320
-            mel = log_mel_spectrogram(short).to(self.device)
+            mel = log_mel_spectrogram(short).to(self.device).half()
             with torch.no_grad():
+                #mel = mel + torch.randn_like(mel) * 0.1 # XXX 
                 ppg = self.whisper.encoder(
                     mel.unsqueeze(0)).squeeze().data.cpu().float().numpy()
                 ppg = ppg[:ppgln,]  # [length, dim=1024]
@@ -290,7 +306,8 @@ class InferTool:
         speaker_emb : np.ndarray,
         transpose = 0,
         f0_method = "harvest2",
-        x2_audio_data = None):
+        x2_audio_data = None,
+        f0_mult_factor = 1):
 
         # Hypothesis: Higher resolution audio data is needed
         # for pitch detection.
@@ -299,7 +316,9 @@ class InferTool:
         start_time = time.time()
 
         ppg = np.array(self.pred_ppg(audio_data))
+        np.save( "svc_tmp.ppg.npy", ppg, allow_pickle=False)
         vec = np.array(self.pred_vec(audio_data))
+        np.save( "svc_tmp.vec.npy", vec, allow_pickle=False)
 
         ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
         ppg = torch.FloatTensor(ppg)
@@ -323,9 +342,8 @@ class InferTool:
             pit = self.compute_f0_parselmouth_cc(audio_data)
         elif f0_method == "rmvpe":
             pit = self.compute_f0_rmvpe(audio_data)
-        print(pit.shape)
-        print(pit.mean())
         pit = pit * (2 ** (transpose / 12))
+        pit = pit * f0_mult_factor
         pit = torch.FloatTensor(pit)
 
         pit_time = time.time()

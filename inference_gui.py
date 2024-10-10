@@ -35,7 +35,7 @@ from collections import deque
 from pathlib import Path
 import librosa
 from inference_util import InferTool
-from whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
+from svc5whisper.audio import load_audio, pad_or_trim, log_mel_spectrogram
 
 RECORD_SHORTCUT = "ctrl+shift+r"
 if (importlib.util.find_spec("pygame")):
@@ -55,21 +55,21 @@ if importlib.util.find_spec("requests"):
 else:
     REQUESTS_AVAILABLE = False
 
-if importlib.util.find_spec("pedalboard"):
-    import pedalboard
-    PEDALBOARD_AVAILABLE = True
-else:
-    PEDALBOARD_AVAILABLE = False
+#if importlib.util.find_spec("pedalboard"):
+#    import pedalboard
+#    PEDALBOARD_AVAILABLE = True
+#else:
+PEDALBOARD_AVAILABLE = False
 
-if (subprocess.run(["where","rubberband"] if os.name == "nt" else 
-    ["which","rubberband"]).returncode == 0) and importlib.util.find_spec(
-        "pyrubberband"):
-    #print("Rubberband is available!")
-    import pyrubberband as pyrb
-    RUBBERBAND_AVAILABLE = True
-else:
+# if (subprocess.run(["where","rubberband"] if os.name == "nt" else 
+    # ["which","rubberband"]).returncode == 0) and importlib.util.find_spec(
+        # "pyrubberband"):
+    # print("Rubberband is available!")
+    # import pyrubberband as pyrb
+    # RUBBERBAND_AVAILABLE = True
+# else:
     #print("Note: Rubberband is not available. Timestretch not available.")
-    RUBBERBAND_AVAILABLE = False
+RUBBERBAND_AVAILABLE = False
 
 TALKNET_ADDR = "127.0.0.1:8050"
 MODELS_DIR = "models"
@@ -705,6 +705,8 @@ class InferenceGui2 (QMainWindow):
             self.num_vec_label, self.num_vec_num)
         self.sovits_lay.addWidget(self.num_vec_frame)
 
+        self.disable_f0 = QCheckBox("Disable f0")
+        self.sovits_lay.addWidget(self.disable_f0)
 
         self.f0_label = QLabel("f0 detection method")
         self.sovits_lay.addWidget(self.f0_label)
@@ -1145,7 +1147,8 @@ class InferenceGui2 (QMainWindow):
                 out_audio = self.infer_tool.infer(
                     audio_data, self.spk_emb, trans,
                     f0_method = f0_method, # Oops
-                    x2_audio_data = audio_data_32k)
+                    x2_audio_data = audio_data_32k,
+                    f0_mult_factor = 0 if self.disable_f0.isChecked() else 1)
 
                 out_sr = self.infer_tool.hp.data.sampling_rate
 
