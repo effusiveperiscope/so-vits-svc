@@ -705,6 +705,9 @@ class InferenceGui2 (QMainWindow):
             self.num_vec_label, self.num_vec_num)
         self.sovits_lay.addWidget(self.num_vec_frame)
 
+        self.rmvpe_smoothing = QCheckBox("Use smoothing on RMVPE")
+        self.sovits_lay.addWidget(self.rmvpe_smoothing)
+
         self.disable_f0 = QCheckBox("Disable f0")
         self.sovits_lay.addWidget(self.disable_f0)
 
@@ -1124,6 +1127,8 @@ class InferenceGui2 (QMainWindow):
             self.speaker["index_paths"]["hubert"],
             self.speaker["index_paths"]["whisper"],
             ratio, n_retrieval_vec)
+
+        self.infer_tool.do_rmvpe_smoothing = self.rmvpe_smoothing.isChecked()
 
         trans = dry_trans
         if trans is None:

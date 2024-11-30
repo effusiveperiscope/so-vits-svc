@@ -16,6 +16,7 @@ from svc5hubert import hubert_model
 from sklearn.cluster import KMeans
 from pathlib import Path
 from feature_retrieval import IRetrieval, DummyRetrieval, FaissIndexRetrieval, load_retrieve_index
+from scipy.ndimage import gaussian_filter1d
 
 LOG_TIMES = True
 RMVPE_PATH = Path("rmvpe.pt")
@@ -31,6 +32,7 @@ class InferTool:
         self.hubert = self.load_hubert_model(hubert_path)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.retrieval = None
+        self.do_rmvpe_smoothing = False
         pass
 
     def load_retrieval(self,
@@ -281,6 +283,8 @@ class InferTool:
                 RMVPE_PATH, is_half=False, device=self.device
             )
         f0 = self.rmvpe.infer_from_audio(audio, thred=0.03)
+        if self.do_rmvpe_smoothing:
+            f0 = gaussian_filter1d(f0, 3)
         return f0
 
     def load_speaker_emb(self, speaker_emb_file):
