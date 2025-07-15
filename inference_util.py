@@ -17,9 +17,32 @@ from sklearn.cluster import KMeans
 from pathlib import Path
 from feature_retrieval import IRetrieval, DummyRetrieval, FaissIndexRetrieval, load_retrieve_index
 from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import interp1d, make_smoothing_spline
+#from svc_helper.sfeatures.models import SVC5WhisperModel, SVC5HubertModel
 
 LOG_TIMES = True
 RMVPE_PATH = Path("rmvpe.pt")
+
+def smooth_pitch_0(pitch):
+    return gaussian_filter1d(pitch, 3)
+
+def smooth_pitch_1(pitch):
+    nonzero_indices = np.nonzero(pitch)[0]
+    nonzero_values = pitch[nonzero_indices]
+
+    if len(nonzero_values) == 0:
+        return pitch
+    
+    # Use nearest neighbor interpolation of nonzero regions to avoid artifacting at onsets
+    interpolator = interp1d(nonzero_indices, nonzero_values, kind='nearest',
+        bounds_error=False, fill_value=(nonzero_values[0], nonzero_values[-1]))
+    interpolated = interpolator(np.arange(0, pitch.shape[0]))
+    smoothed_curve = make_smoothing_spline(np.arange(0, pitch.shape[0]), 
+        interpolated, lam=0.4)
+
+    # Then mask to preserve onsets
+    mask = (pitch != 0).astype(np.float32)
+    return smoothed_curve(np.arange(0, pitch.shape[0])) * mask
 
 class InferTool:
     def __init__(self,
@@ -33,6 +56,9 @@ class InferTool:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.retrieval = None
         self.do_rmvpe_smoothing = False
+
+        # self.whisper_model_alt = SVC5WhisperModel(is_half=True)
+        # self.hubert_model_alt = SVC5HubertModel(is_half=True)
         pass
 
     def load_retrieval(self,
@@ -98,7 +124,8 @@ class InferTool:
             self.hp.data.segment_size // self.hp.data.hop_length,
             self.hp)
 
-        checkpoint_dict = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint_dict = torch.load(checkpoint_path, map_location="cpu",
+            weights_only=False)
         saved_state_dict = checkpoint_dict["model_g"]
         state_dict = model.state_dict()
         new_state_dict = {}
@@ -284,7 +311,7 @@ class InferTool:
             )
         f0 = self.rmvpe.infer_from_audio(audio, thred=0.03)
         if self.do_rmvpe_smoothing:
-            f0 = gaussian_filter1d(f0, 3)
+            f0 = smooth_pitch_1(f0)
         return f0
 
     def load_speaker_emb(self, speaker_emb_file):
@@ -319,9 +346,9 @@ class InferTool:
 
         start_time = time.time()
 
-        ppg = np.array(self.pred_ppg(audio_data))
+        ppg = np.array(self.pred_ppg(audio_data)) # (T, 1280)
         np.save( "svc_tmp.ppg.npy", ppg, allow_pickle=False)
-        vec = np.array(self.pred_vec(audio_data))
+        vec = np.array(self.pred_vec(audio_data)) # (T, 256)
         np.save( "svc_tmp.vec.npy", vec, allow_pickle=False)
 
         ppg = np.repeat(ppg, 2, 0)  # 320 PPG -> 160 * 2
