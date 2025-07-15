@@ -76,13 +76,13 @@ train:
   c_kl: 0.2
   c_mel: 1.0
   c_stft: 9
-  epochs: 400
+  epochs: 602
   eps: 1e-9
   learning_rate: 5e-5
   lr_decay: 0.999875
   model: sovits
   port: 8001
-  pretrain: ''
+  pretrain: ./vits_pretrain/sovits5.0_bigvgan_mix_v2.pth
   seed: 1234
 vits:
   filter_channels: 640
