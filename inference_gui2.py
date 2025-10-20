@@ -38,7 +38,6 @@ class MainWindow(QMainWindow):
         gui.addFileInput(AudioFileInput(id='spk_files', label="Speaker Embedding Source"))
         gui.addParam(IntParam(label="Transpose", id='transpose', min=-24, max=24, default=0))
         gui.addParam(DoubleParam(label="Noise Scale", id='noise', min=0, max=3, default=0.5))
-        gui.addParam(BoolParam(label="Use pitch smoothing", id='use_smooth_pitch', default=False))
         gui.addInference(Inference(
             info=InferenceInfo(sr=32000, extension='flac'),
             infer_action=self.inferAction
