@@ -99,12 +99,13 @@ class InferTool:
         model = Whisper(dims)
         # But why did they do this?
         # XXX
-        # del model.decoder
         # cut = len(model.encoder.blocks) // 4
         # cut = -1 * cut
         # del model.encoder.blocks[cut:]
         # XXX
         model.load_state_dict(checkpoint["model_state_dict"])
+        del model.decoder
+        model.eval()
         model.half()
         return model.to(device)
 
@@ -174,6 +175,12 @@ class InferTool:
     def pred_ppg(self, wav_data):
         #import pdb
         #pdb.set_trace()
+
+        # import pdb
+        # from PyQt5.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # pdb.set_trace()
+
         audio = wav_data 
         audln = audio.shape[0]
         ppg_a = []
@@ -434,6 +441,7 @@ class InferTool:
                 sub_len = torch.LongTensor([cut_e - cut_s]).to(self.device)
                 sub_har = source[:, :, cut_s *
                                  hop_size:cut_e * hop_size].to(self.device)
+
                 sub_out = self.model.inference(
                     sub_ppg, sub_vec, sub_pit, spk, sub_len, sub_har)
                 sub_out = sub_out[0, 0].data.cpu().detach().numpy()
