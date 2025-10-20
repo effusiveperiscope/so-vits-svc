@@ -25,3 +25,4 @@ prepare/rmvpe.pt
 *.mp3
 whisper_pretrain/*.pt
 *.csv
+outputs
